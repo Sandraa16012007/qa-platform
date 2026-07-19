@@ -1,26 +1,167 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --spacing: 4px;
+
+  /* Core palette from code.html */
+  --color-background: #080B12;
+  --color-foreground: #d9e3f6;
+  --color-surface: #111827;
+  --color-surface-dim: #091421;
+  --color-surface-bright: #303a48;
+  --color-surface-container-lowest: #050f1c;
+  --color-surface-container-low: #121c2a;
+  --color-surface-container: #16202e;
+  --color-surface-container-high: #212b39;
+  --color-surface-container-highest: #2b3544;
+  --color-surface-variant: #2b3544;
+
+  /* Accent colors */
+  --color-primary: #00A0CB;
+  --color-primary-container: #00a0cb;
+  --color-on-primary: #003546;
+  --color-on-primary-container: #003140;
+
+  --color-secondary: #D11A6B;
+  --color-magenta: #D11A6B;
+  --color-magenta-dim: rgba(209, 26, 107, 0.10);
+
+  --color-tertiary: #F3D101;
+  --color-yellow: #F3D101;
+  --color-yellow-dim: rgba(243, 209, 1, 0.10);
+
+  --color-cyan: #00A0CB;
+  --color-cyan-dim: rgba(0, 160, 203, 0.10);
+
+  /* Text colors */
+  --color-on-surface: #d9e3f6;
+  --color-on-surface-variant: #bdc8cf;
+  --color-on-background: #d9e3f6;
+  --color-text-primary: #d9e3f6;
+  --color-text-secondary: #bdc8cf;
+  --color-text-muted: #7a8a98;
+
+  /* Border / Outline */
+  --color-outline: #1F2937;
+  --color-outline-variant: #3e484e;
+  --color-border: #1F2937;
+
+  /* Error */
+  --color-error: #ffb4ab;
+
+  /* Typography — reference the fonts actually loaded via next/font first */
+  --font-sans: var(--font-ibm-plex), 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: var(--font-ibm-plex-mono), 'IBM Plex Mono', monospace;
+
+  /* Border radius — matches code.html's custom scale (default Tailwind is smaller) */
+  --radius: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
   }
 }
 
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1E293B;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Neo border utility — matches code.html's neo-border */
+.neo-border {
+  border: 1px solid var(--color-outline);
+}
+
+.neo-border-primary {
+  border: 1px solid var(--color-primary);
+}
+
+/* Circular progress */
+.quality-ring {
+  transform: rotate(-90deg);
+}
+
+.quality-ring-bg {
+  stroke: var(--color-outline-variant);
+}
+
+.quality-ring-fill {
+  stroke: var(--color-primary);
+  transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Pipeline connector */
+.pipeline-connector {
+  position: relative;
+}
+
+.pipeline-connector::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -1px;
+  width: 24px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-primary) 0%, rgba(0, 160, 203, 0.3) 100%);
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+.pipeline-connector:last-child::after {
+  display: none;
+}
+
+/* Glow effects */
+.glow-cyan {
+  box-shadow: 0 0 0 1px rgba(0, 160, 203, 0.2), 0 0 20px rgba(0, 160, 203, 0.05);
+}
+
+.glow-magenta {
+  box-shadow: 0 0 0 1px rgba(209, 26, 107, 0.2), 0 0 20px rgba(209, 26, 107, 0.05);
+}
+
+.glow-yellow {
+  box-shadow: 0 0 0 1px rgba(243, 209, 1, 0.2), 0 0 20px rgba(243, 209, 1, 0.05);
+}
+
+/* Tag styles */
+.tag {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 3px;
 }
