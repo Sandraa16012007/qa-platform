@@ -7,7 +7,7 @@ import RecentProjects from "./components/RecentProjects";
 
 export default function Home() {
   return (
-    <div className="flex overflow-hidden">
+    <div className="flex overflow-hidden w-full">
       {/* Sidebar */}
       <Sidebar />
 
