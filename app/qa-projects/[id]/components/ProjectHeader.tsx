@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Play, Edit3, ShieldCheck } from "lucide-react";
-import { Project } from "../types";
+import { Project, Toast } from "../types";
 import QualityCircleDashboard from "./QualityCircleDashboard";
 
 interface ProjectHeaderProps {
@@ -10,7 +10,7 @@ interface ProjectHeaderProps {
   currentScore: number;
   scoreAnimation: boolean;
   handleRunQA: () => void;
-  showToast: (msg: string, type?: string) => void;
+  showToast: (msg: string, type?: Toast["type"]) => void;
 }
 
 export default function ProjectHeader({

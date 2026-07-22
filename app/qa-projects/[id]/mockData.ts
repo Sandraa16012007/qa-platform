@@ -12,7 +12,7 @@ import {
   Layers,
   Cpu,
 } from "lucide-react";
-import { Project, QaCheck, DetailedTestRun, HumanReviewItem } from "./types";
+import { Project, QaCheck, DetailedTestRun, HumanReviewItem, IssueItem, PageNote } from "./types";
 
 // Mock Projects Database
 export const projectDatabase: Record<string, Project> = {
@@ -843,3 +843,172 @@ export const initialHumanReviews: HumanReviewItem[] = [
     reviewedBy: "Alex R."
   }
 ];
+
+// Initial Issues linked to QA Check & Human Review entries
+export const initialIssues: IssueItem[] = [
+  {
+    id: "issue-1",
+    title: "Contrast ratio below 4.5:1 on footer secondary tags",
+    severity: "Critical",
+    status: "Open",
+    source: "Automation",
+    level: "Product QA",
+    linkedPage: "/components/footer",
+    assignedTo: "Sarah Chen",
+    description: "Muted gray text on dark background does not meet WCAG AA compliance (3.2:1 contrast ratio detected).",
+    recommendation: "Increase contrast by shifting text color token to --color-on-surface-variant (#A1A7B8).",
+    createdDate: "Jul 21, 2026",
+    linkedCheckId: "check-7",
+  },
+  {
+    id: "issue-2",
+    title: "Form validation error messages lack clear recovery steps",
+    severity: "High",
+    status: "In Progress",
+    source: "Human Review",
+    level: "Page QA",
+    linkedPage: "/qa-projects/new",
+    assignedTo: "Alex Rivera",
+    description: "Input fields fail validation with vague error strings without stating protocol format requirements.",
+    recommendation: "Update validation text to explicitly specify URL protocol requirements (e.g., 'https://').",
+    createdDate: "Jul 22, 2026",
+    linkedReviewId: "hr-3",
+  },
+  {
+    id: "issue-3",
+    title: "Brand tone & copy variance across setting tooltips",
+    severity: "Medium",
+    status: "Open",
+    source: "Human Review",
+    level: "Release QA",
+    linkedPage: "/settings/overview",
+    assignedTo: "Emma Watson",
+    description: "Inconsistent technical terminology across dynamic popup tips.",
+    recommendation: "Align tooltip microcopy dictionary with established quality platform documentation.",
+    createdDate: "Jul 20, 2026",
+    linkedReviewId: "hr-7",
+  },
+  {
+    id: "issue-4",
+    title: "Checkout API responds with 500 error on payload overflow",
+    severity: "Critical",
+    status: "In Progress",
+    source: "Automation",
+    level: "Feature QA",
+    linkedPage: "/api/v1/checkout",
+    assignedTo: "Dave Miller",
+    description: "Submitting large array payloads triggers unhandled internal error exceptions.",
+    recommendation: "Implement request body sizing middleware and handle validation gracefully.",
+    createdDate: "Jul 19, 2026",
+    linkedCheckId: "check-16",
+  },
+  {
+    id: "issue-5",
+    title: "Unfocused input outlines during keyboard navigation",
+    severity: "Low",
+    status: "Resolved",
+    source: "Automation",
+    level: "Component QA",
+    linkedPage: "/forms/inputs",
+    assignedTo: "Alex Rivera",
+    description: "Secondary input tags lacked cyan focus ring styling on Tab key focus.",
+    recommendation: "Apply focus:ring-1 focus:border-primary styles across form fields.",
+    createdDate: "Jul 18, 2026",
+    linkedCheckId: "check-8",
+  },
+];
+
+// Initial Page Notes (miscellaneous observations)
+export const initialPageNotes: PageNote[] = [
+  {
+    id: "note-1",
+    pageName: "Overview & Dashboard",
+    author: "Alex Rivera",
+    date: "Jul 22, 2026",
+    content: "Consider adding quick keyboard shortcuts (Cmd+K) for jumping between QA project tabs.",
+  },
+  {
+    id: "note-2",
+    pageName: "QA Framework Checklist",
+    author: "Sarah Chen",
+    date: "Jul 21, 2026",
+    content: "Category header expansion animations feel super smooth on 120Hz displays.",
+  },
+];
+
+// Mock Quality Report Data
+export const mockReportData = {
+  overallScore: 87,
+  scoreImprovement: 5,
+  releaseStatus: "Ready for release",
+  qualityBreakdown: [
+    { category: "Functionality", score: 92, status: "Optimal" },
+    { category: "Accessibility", score: 84, status: "Needs Minor Tweak" },
+    { category: "Visual Quality", score: 88, status: "Good" },
+    { category: "User Experience", score: 86, status: "Good" },
+    { category: "Performance", score: 90, status: "Optimal" },
+    { category: "Content", score: 94, status: "Optimal" },
+  ],
+  levelBreakdown: [
+    { level: "Product QA", score: 88, totalChecks: 42, passed: 37 },
+    { level: "Page QA", score: 85, totalChecks: 118, passed: 100 },
+    { level: "Component QA", score: 90, totalChecks: 74, passed: 67 },
+    { level: "Feature QA", score: 86, totalChecks: 56, passed: 48 },
+    { level: "Release QA", score: 94, totalChecks: 18, passed: 17 },
+  ],
+  testingCoverage: {
+    automatedPercentage: 82,
+    humanPercentage: 45,
+    totalCoverage: 76,
+  },
+  topRecommendations: [
+    "Increase contrast ratio on footer text tokens to reach 4.5:1 WCAG AA standard.",
+    "Clarify URL validation error messaging on project creation forms.",
+    "Verify mobile gesture touch targets across portfolio viewports.",
+    "Standardize setting tooltip terminology for platform release.",
+  ],
+  aiSummary:
+    "CreativeHub v1.2 demonstrates strong stability with a 92% automated test pass rate and high performance scores across desktop and mobile viewports. Key areas for pre-release polish include WCAG AA accessibility contrast compliance and minor form validation messaging enhancements.",
+};
+
+// Mock Workspace-wide Analytics
+export const mockWorkspaceAnalytics = {
+  averageQualityScore: 86,
+  totalProjects: 4,
+  totalTestsExecuted: 8420,
+  activeIssues: 18,
+  monthlyTrend: [
+    { month: "Feb", score: 78 },
+    { month: "Mar", score: 81 },
+    { month: "Apr", score: 83 },
+    { month: "May", score: 80 },
+    { month: "Jun", score: 84 },
+    { month: "Jul", score: 86 },
+  ],
+  distribution: [
+    { range: "90% - 100% (Ready)", count: 2, percentage: 50 },
+    { range: "80% - 89% (Testing)", count: 1, percentage: 25 },
+    { range: "< 80% (Needs Review)", count: 1, percentage: 25 },
+  ],
+  categoryPerformance: [
+    { category: "Functionality", score: 91 },
+    { category: "Performance", score: 89 },
+    { category: "Visual Quality", score: 86 },
+    { category: "User Experience", score: 84 },
+    { category: "Accessibility", score: 79 },
+    { category: "Security", score: 95 },
+  ],
+  commonIssues: [
+    { title: "WCAG Contrast Mismatch", count: 8, severity: "Critical" },
+    { title: "Form Validation Clarity", count: 5, severity: "High" },
+    { title: "Unfocused Input Focus Rings", count: 3, severity: "Medium" },
+    { title: "Image Alt Text Missing", count: 2, severity: "Low" },
+  ],
+  recentReports: [
+    { id: "1", projectName: "CreativeHub", version: "v1.2", score: 87, date: "Jul 22, 2026", status: "Ready for release" },
+    { id: "2", projectName: "LearnPro", version: "v2.0", score: 94, date: "Jul 21, 2026", status: "Production Ready" },
+    { id: "3", projectName: "API Gateway", version: "v1.0", score: 72, date: "Jul 20, 2026", status: "Testing Active" },
+    { id: "4", projectName: "ShopFlow", version: "v0.8", score: 81, date: "Jul 19, 2026", status: "Framework Built" },
+  ],
+};
+

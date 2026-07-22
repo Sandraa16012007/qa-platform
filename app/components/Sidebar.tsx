@@ -21,7 +21,7 @@ const SIDEBAR_COLLAPSED_WIDTH = 64;
 const navItems = [
   { label: "Home", icon: Home, href: "/" },
   { label: "QA Projects", icon: GitBranch, href: "/qa-projects" },
-  { label: "Reports", icon: BarChart3, href: "#" },
+  { label: "Analytics", icon: BarChart3, href: "/analytics" },
 ];
 
 interface SidebarProps {

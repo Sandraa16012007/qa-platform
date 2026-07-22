@@ -28,6 +28,8 @@ import {
   QaCheck,
   DetailedTestRun,
   HumanReviewItem,
+  IssueItem,
+  PageNote,
   Toast,
 } from "./types";
 import {
@@ -35,6 +37,8 @@ import {
   initialQaChecks,
   initialDetailedRuns,
   initialHumanReviews,
+  initialIssues,
+  initialPageNotes,
 } from "./mockData";
 
 // Components
@@ -48,6 +52,8 @@ import OverviewTab from "./components/tabs/OverviewTab";
 import QaFrameworkTab from "./components/tabs/QaFrameworkTab";
 import TestRunsTab from "./components/tabs/TestRunsTab";
 import HumanReviewsTab from "./components/tabs/HumanReviewsTab";
+import IssuesTab from "./components/tabs/IssuesTab";
+import ReportsTab from "./components/tabs/ReportsTab";
 
 function ProjectDashboardContent({ id }: { id: string }) {
   const router = useRouter();
@@ -250,6 +256,19 @@ function ProjectDashboardContent({ id }: { id: string }) {
 
   // Human Reviews Tab State
   const [humanReviews, setHumanReviews] = useState<HumanReviewItem[]>(initialHumanReviews);
+
+  // Issues Tab & Page Notes State
+  const [issues, setIssues] = useState<IssueItem[]>(initialIssues);
+  const [pageNotes, setPageNotes] = useState<PageNote[]>(initialPageNotes);
+
+  const handleNavigateToCheck = (checkId: string) => {
+    setActiveTab("QA Framework");
+    setSelectedCheckId(checkId);
+  };
+
+  const handleNavigateToReview = (reviewId: string) => {
+    setActiveTab("Human Reviews");
+  };
 
   // Toast System
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -698,8 +717,23 @@ function ProjectDashboardContent({ id }: { id: string }) {
                 setHumanReviews={setHumanReviews}
                 showToast={showToast}
               />
+            ) : activeTab === "Issues" ? (
+              <IssuesTab
+                issues={issues}
+                setIssues={setIssues}
+                pageNotes={pageNotes}
+                setPageNotes={setPageNotes}
+                onNavigateToCheck={handleNavigateToCheck}
+                onNavigateToReview={handleNavigateToReview}
+                showToast={showToast}
+              />
+            ) : activeTab === "Reports" ? (
+              <ReportsTab
+                project={project}
+                currentScore={currentScore}
+                showToast={showToast}
+              />
             ) : (
-              // Mock Workspace view for Issues / Reports
               <div className="neo-border bg-surface rounded-xl p-8 flex flex-col items-center justify-center text-center space-y-4 py-16">
                 <Layers size={48} className="text-primary animate-pulse" />
                 <h3 className="text-xl font-bold uppercase tracking-tight text-on-surface">

@@ -94,3 +94,28 @@ export interface Toast {
   message: string;
   type: "success" | "info" | "warning" | "error";
 }
+
+export interface IssueItem {
+  id: string;
+  title: string;
+  severity: "Critical" | "High" | "Medium" | "Low";
+  status: "Open" | "In Progress" | "Resolved";
+  source: "Automation" | "Human Review";
+  level: "Product QA" | "Page QA" | "Component QA" | "Feature QA" | "Release QA";
+  linkedPage: string;
+  assignedTo: string;
+  description: string;
+  recommendation: string;
+  createdDate: string;
+  linkedCheckId?: string;
+  linkedReviewId?: string;
+}
+
+export interface PageNote {
+  id: string;
+  pageName: string;
+  author: string;
+  date: string;
+  content: string;
+}
+

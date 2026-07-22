@@ -9,7 +9,7 @@ import {
   AlertTriangle,
   ArrowUpRight,
 } from "lucide-react";
-import { DetailedTestRun } from "../../types";
+import { DetailedTestRun, Toast } from "../../types";
 import { QA_SUITES } from "../../mockData";
 import FilterDropdown from "../FilterDropdown";
 import QualityCircleDashboard from "../QualityCircleDashboard";
@@ -39,7 +39,7 @@ interface TestRunsTabProps {
   expandedRunId: string | null;
   setExpandedRunId: (id: string | null) => void;
   getTestStatusBadgeClass: (status: string) => string;
-  showToast: (msg: string, type?: string) => void;
+  showToast: (msg: string, type?: Toast["type"]) => void;
 }
 
 export default function TestRunsTab({

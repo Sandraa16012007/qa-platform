@@ -20,7 +20,7 @@ import {
   ExternalLink,
   GitBranch,
 } from "lucide-react";
-import { Project, TestRun, ActivityItem } from "../../types";
+import { Project, TestRun, ActivityItem, Toast } from "../../types";
 import EditableTags from "../EditableTags";
 
 interface OverviewTabProps {
@@ -41,7 +41,7 @@ interface OverviewTabProps {
   risks: string[];
   setRisks: (val: string[]) => void;
   setActiveTab: (tab: string) => void;
-  showToast: (msg: string, type?: string) => void;
+  showToast: (msg: string, type?: Toast["type"]) => void;
 }
 
 export default function OverviewTab({

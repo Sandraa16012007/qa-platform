@@ -19,13 +19,13 @@ import {
   Sparkles,
   Check,
 } from "lucide-react";
-import { HumanReviewItem } from "../../types";
+import { HumanReviewItem, Toast } from "../../types";
 import FilterDropdown from "../FilterDropdown";
 
 interface HumanReviewsTabProps {
   humanReviews: HumanReviewItem[];
   setHumanReviews: React.Dispatch<React.SetStateAction<HumanReviewItem[]>>;
-  showToast: (msg: string, type?: string) => void;
+  showToast: (msg: string, type?: Toast["type"]) => void;
 }
 
 export default function HumanReviewsTab({
