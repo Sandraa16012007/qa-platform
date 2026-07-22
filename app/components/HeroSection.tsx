@@ -33,20 +33,22 @@ export default function HeroSection() {
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="bg-primary text-on-primary-container px-6 py-4 text-xs font-semibold uppercase tracking-widest flex items-center justify-center gap-2 hover:opacity-90 transition-all rounded-lg cursor-pointer"
+            className="bg-primary text-on-primary-container px-6 py-4 text-xs font-semibold uppercase tracking-widest flex items-center justify-center gap-2 hover:opacity-90 transition-all rounded-lg cursor-pointer w-full sm:w-auto"
           >
             <PlusCircle size={18} strokeWidth={1.5} />
             New QA Project
           </motion.button>
         </Link>
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="neo-border-primary text-primary px-6 py-4 text-xs font-semibold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-primary/10 transition-all rounded-lg cursor-pointer"
-        >
-          <FileText size={18} strokeWidth={1.5} />
-          View Reports
-        </motion.button>
+        <Link href="/analytics">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="neo-border-primary text-primary px-6 py-4 text-xs font-semibold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-primary/10 transition-all rounded-lg cursor-pointer w-full sm:w-auto"
+          >
+            <FileText size={18} strokeWidth={1.5} />
+            View Reports
+          </motion.button>
+        </Link>
       </div>
     </motion.section>
   );

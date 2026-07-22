@@ -258,12 +258,6 @@ export default function OverviewTab({
               <EditableTags title="Potential Risk Areas" tags={risks} onSave={setRisks} />
             </div>
 
-            <button
-              onClick={() => showToast("Opening full AI understanding settings...", "info")}
-              className="text-[10px] text-primary hover:underline uppercase tracking-wider font-bold block cursor-pointer mt-2"
-            >
-              Edit Understanding →
-            </button>
           </div>
         </div>
 
