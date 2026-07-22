@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { PlusCircle, FileText } from "lucide-react";
+import Link from "next/link";
 
 export default function HeroSection() {
   return (
@@ -28,14 +29,16 @@ export default function HeroSection() {
         </p>
       </div>
       <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="bg-primary text-on-primary-container px-6 py-4 text-xs font-semibold uppercase tracking-widest flex items-center justify-center gap-2 hover:opacity-90 transition-all rounded-lg cursor-pointer"
-        >
-          <PlusCircle size={18} strokeWidth={1.5} />
-          New QA Project
-        </motion.button>
+        <Link href="/qa-projects/new">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="bg-primary text-on-primary-container px-6 py-4 text-xs font-semibold uppercase tracking-widest flex items-center justify-center gap-2 hover:opacity-90 transition-all rounded-lg cursor-pointer"
+          >
+            <PlusCircle size={18} strokeWidth={1.5} />
+            New QA Project
+          </motion.button>
+        </Link>
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}

@@ -1,23 +1,46 @@
-import Sidebar from "./components/Sidebar";
+"use client";
+
+import { useState, useEffect } from "react";
+import Sidebar, { SIDEBAR_EXPANDED_WIDTH, SIDEBAR_COLLAPSED_WIDTH } from "./components/Sidebar";
 import Header from "./components/Header";
 import HeroSection from "./components/HeroSection";
 import WorkflowSection from "./components/WorkflowSection";
 import MetricsPanel from "./components/MetricsPanel";
 import RecentProjects from "./components/RecentProjects";
 
+const STORAGE_KEY = "qa-sidebar-collapsed";
+
 export default function Home() {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored !== null) {
+      setSidebarCollapsed(stored === "true");
+    }
+  }, []);
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem(STORAGE_KEY, String(next));
+      return next;
+    });
+  };
+
+  const sidebarWidth = sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH;
+
   return (
     <div className="flex overflow-hidden w-full">
       {/* Sidebar */}
-      <Sidebar />
+      <Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
 
       {/* Main Canvas */}
       <main
-        style={{ marginLeft: 260 }}
         className="flex-1 h-screen overflow-y-auto"
       >
         {/* Header */}
-        <Header />
+        <Header sidebarWidth={sidebarWidth} />
 
         {/* Content Spacer for fixed header */}
         <div style={{ height: 64 }} />

@@ -3,8 +3,13 @@
 import { Search, Info, Bell, User, Settings } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
+import { SIDEBAR_EXPANDED_WIDTH, SIDEBAR_COLLAPSED_WIDTH } from "./Sidebar";
 
-function HeaderContent() {
+interface HeaderContentProps {
+  sidebarWidth?: number;
+}
+
+function HeaderContent({ sidebarWidth = SIDEBAR_EXPANDED_WIDTH }: HeaderContentProps) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -35,7 +40,10 @@ function HeaderContent() {
 
   return (
     <header
-      style={{ width: "calc(100% - 260px)" }}
+      style={{
+        width: `calc(100% - ${sidebarWidth}px)`,
+        transition: "width 0.2s ease-in-out",
+      }}
       className="fixed top-0 right-0 h-16 bg-background border-b border-outline-variant z-40 flex justify-between items-center px-6 gap-6"
     >
       {/* Search */}
@@ -76,12 +84,15 @@ function HeaderContent() {
   );
 }
 
-export default function Header() {
+interface HeaderProps {
+  sidebarWidth?: number;
+}
+
+export default function Header({ sidebarWidth }: HeaderProps) {
   return (
     <Suspense fallback={
       <header
-        style={{ width: "calc(100% - 260px)" }}
-        className="fixed top-0 right-0 h-16 bg-background border-b border-outline-variant z-40 flex justify-between items-center px-6 gap-6"
+        className="sticky top-0 h-16 bg-background/80 backdrop-blur border-b border-outline-variant z-40 flex justify-between items-center px-6 gap-6 w-full"
       >
         <div className="flex-1 max-w-xl">
           <div className="relative">
@@ -94,7 +105,7 @@ export default function Header() {
         </div>
       </header>
     }>
-      <HeaderContent />
+      <HeaderContent sidebarWidth={sidebarWidth} />
     </Suspense>
   );
 }

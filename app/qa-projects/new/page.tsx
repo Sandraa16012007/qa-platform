@@ -163,13 +163,12 @@ function ProgressIndicator({ currentStep }: { currentStep: number }) {
             {/* Step circle + label */}
             <div className="flex flex-col items-center gap-1.5 min-w-0">
               <div
-                className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold transition-all duration-500 border ${
-                  isCompleted
+                className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold transition-all duration-500 border ${isCompleted
                     ? "bg-primary border-primary text-on-primary-container"
                     : isCurrent
-                    ? "bg-cyan-dim border-primary text-primary"
-                    : "bg-surface-container border-outline text-text-muted"
-                }`}
+                      ? "bg-cyan-dim border-primary text-primary"
+                      : "bg-surface-container border-outline text-text-muted"
+                  }`}
               >
                 {isCompleted ? (
                   <Check size={14} strokeWidth={2.5} />
@@ -178,13 +177,12 @@ function ProgressIndicator({ currentStep }: { currentStep: number }) {
                 )}
               </div>
               <span
-                className={`text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap transition-colors duration-300 ${
-                  isCompleted
+                className={`text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap transition-colors duration-300 ${isCompleted
                     ? "text-primary"
                     : isCurrent
-                    ? "text-on-surface"
-                    : "text-text-muted"
-                }`}
+                      ? "text-on-surface"
+                      : "text-text-muted"
+                  }`}
               >
                 {label}
               </span>
@@ -243,9 +241,8 @@ function UploadCard({
 
   return (
     <div
-      className={`neo-border rounded-xl p-4 transition-all duration-200 ${
-        isDragOver ? "border-primary glow-cyan" : "bg-surface hover:border-outline-variant"
-      }`}
+      className={`neo-border rounded-xl p-4 transition-all duration-200 ${isDragOver ? "border-primary glow-cyan" : "bg-surface hover:border-outline-variant"
+        }`}
       onDragOver={(e) => {
         e.preventDefault();
         setIsDragOver(true);
@@ -267,11 +264,10 @@ function UploadCard({
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className={`w-full border border-dashed rounded-lg py-3 px-3 flex items-center justify-center gap-2 transition-all cursor-pointer ${
-          isDragOver
+        className={`w-full border border-dashed rounded-lg py-3 px-3 flex items-center justify-center gap-2 transition-all cursor-pointer ${isDragOver
             ? "border-primary bg-cyan-dim text-primary"
             : "border-outline text-text-muted hover:border-outline-variant hover:text-on-surface-variant"
-        }`}
+          }`}
       >
         <Upload size={14} strokeWidth={1.5} />
         <span className="text-[11px] font-medium uppercase tracking-wider">
@@ -606,7 +602,6 @@ export default function NewProjectWizard() {
       <div className="flex overflow-hidden w-full">
         <Sidebar />
         <main
-          style={{ marginLeft: 260 }}
           className="flex-1 h-screen overflow-y-auto bg-background"
         >
           <Header />
@@ -665,13 +660,12 @@ export default function NewProjectWizard() {
                       {/* Line connector */}
                       <div className="flex flex-col items-center w-5">
                         <div
-                          className={`w-5 h-5 rounded-md flex items-center justify-center transition-all duration-300 ${
-                            isComplete
+                          className={`w-5 h-5 rounded-md flex items-center justify-center transition-all duration-300 ${isComplete
                               ? "bg-primary text-on-primary-container"
                               : isCurrent
-                              ? "border border-primary text-primary animate-pulse"
-                              : "border border-outline text-text-muted"
-                          }`}
+                                ? "border border-primary text-primary animate-pulse"
+                                : "border border-outline text-text-muted"
+                            }`}
                         >
                           {isComplete ? (
                             <Check size={11} strokeWidth={3} />
@@ -683,13 +677,12 @@ export default function NewProjectWizard() {
                         </div>
                       </div>
                       <span
-                        className={`text-xs font-medium transition-colors duration-300 ${
-                          isComplete
+                        className={`text-xs font-medium transition-colors duration-300 ${isComplete
                             ? "text-primary"
                             : isCurrent
-                            ? "text-on-surface"
-                            : "text-text-muted"
-                        }`}
+                              ? "text-on-surface"
+                              : "text-text-muted"
+                          }`}
                       >
                         {step}
                       </span>
@@ -709,7 +702,6 @@ export default function NewProjectWizard() {
     <div className="flex overflow-hidden w-full">
       <Sidebar />
       <main
-        style={{ marginLeft: 260 }}
         className="flex-1 h-screen overflow-hidden"
       >
         <Header />
@@ -782,9 +774,8 @@ export default function NewProjectWizard() {
                             setProjectName(e.target.value);
                             if (e.target.value.trim()) setStep0Errors((p) => ({ ...p, projectName: false }));
                           }}
-                          className={`w-full bg-surface-container-low border rounded-lg focus:border-primary focus:outline-none text-on-surface text-sm px-4 py-2.5 placeholder:text-text-muted/50 ${
-                            step0Errors.projectName ? "border-magenta" : "border-outline"
-                          }`}
+                          className={`w-full bg-surface-container-low border rounded-lg focus:border-primary focus:outline-none text-on-surface text-sm px-4 py-2.5 placeholder:text-text-muted/50 ${step0Errors.projectName ? "border-magenta" : "border-outline"
+                            }`}
                         />
                         {step0Errors.projectName && (
                           <p className="text-[10px] text-magenta font-medium">Required field</p>
@@ -802,9 +793,8 @@ export default function NewProjectWizard() {
                             setDomain(e.target.value);
                             if (e.target.value) setStep0Errors((p) => ({ ...p, domain: false }));
                           }}
-                          className={`w-full bg-surface-container-low border rounded-lg focus:border-primary focus:outline-none text-on-surface text-sm px-4 py-2.5 cursor-pointer ${
-                            step0Errors.domain ? "border-magenta" : "border-outline"
-                          } ${!domain ? "text-text-muted/50" : ""}`}
+                          className={`w-full bg-surface-container-low border rounded-lg focus:border-primary focus:outline-none text-on-surface text-sm px-4 py-2.5 cursor-pointer ${step0Errors.domain ? "border-magenta" : "border-outline"
+                            } ${!domain ? "text-text-muted/50" : ""}`}
                         >
                           <option value="">Select domain...</option>
                           {DOMAINS.map((d) => (
@@ -827,9 +817,8 @@ export default function NewProjectWizard() {
                             setProductType(e.target.value);
                             if (e.target.value) setStep0Errors((p) => ({ ...p, productType: false }));
                           }}
-                          className={`w-full bg-surface-container-low border rounded-lg focus:border-primary focus:outline-none text-on-surface text-sm px-4 py-2.5 cursor-pointer ${
-                            step0Errors.productType ? "border-magenta" : "border-outline"
-                          } ${!productType ? "text-text-muted/50" : ""}`}
+                          className={`w-full bg-surface-container-low border rounded-lg focus:border-primary focus:outline-none text-on-surface text-sm px-4 py-2.5 cursor-pointer ${step0Errors.productType ? "border-magenta" : "border-outline"
+                            } ${!productType ? "text-text-muted/50" : ""}`}
                         >
                           <option value="">Select type...</option>
                           {PRODUCT_TYPES.map((t) => (
@@ -871,9 +860,8 @@ export default function NewProjectWizard() {
                             setDescription(e.target.value);
                             if (e.target.value.trim()) setStep0Errors((p) => ({ ...p, description: false }));
                           }}
-                          className={`w-full bg-surface-container-low border rounded-lg focus:border-primary focus:outline-none text-on-surface text-sm px-4 py-2.5 resize-none placeholder:text-text-muted/50 ${
-                            step0Errors.description ? "border-magenta" : "border-outline"
-                          }`}
+                          className={`w-full bg-surface-container-low border rounded-lg focus:border-primary focus:outline-none text-on-surface text-sm px-4 py-2.5 resize-none placeholder:text-text-muted/50 ${step0Errors.description ? "border-magenta" : "border-outline"
+                            }`}
                         />
                         {step0Errors.description && (
                           <p className="text-[10px] text-magenta font-medium">Required field</p>
@@ -1034,15 +1022,14 @@ export default function NewProjectWizard() {
                               key={opt.key}
                               type="button"
                               onClick={() => setQaDepth(opt.key)}
-                              className={`text-left p-3 rounded-xl border transition-all cursor-pointer ${
-                                isActive
+                              className={`text-left p-3 rounded-xl border transition-all cursor-pointer ${isActive
                                   ? opt.accent === "primary"
                                     ? "neo-border-primary bg-cyan-dim"
                                     : opt.accent === "magenta"
-                                    ? "border-magenta bg-magenta-dim"
-                                    : "border-yellow bg-yellow-dim"
+                                      ? "border-magenta bg-magenta-dim"
+                                      : "border-yellow bg-yellow-dim"
                                   : "neo-border hover:border-outline-variant"
-                              }`}
+                                }`}
                             >
                               <div className="flex items-center gap-2 mb-1.5">
                                 <Icon
@@ -1053,8 +1040,8 @@ export default function NewProjectWizard() {
                                       ? opt.accent === "primary"
                                         ? "text-primary"
                                         : opt.accent === "magenta"
-                                        ? "text-magenta"
-                                        : "text-yellow"
+                                          ? "text-magenta"
+                                          : "text-yellow"
                                       : "text-text-muted"
                                   }
                                 />
@@ -1087,11 +1074,10 @@ export default function NewProjectWizard() {
                               key={p}
                               type="button"
                               onClick={() => toggleItem(qualityPriorities, setQualityPriorities, p)}
-                              className={`px-3 py-1.5 text-[11px] font-semibold rounded-lg border transition-all cursor-pointer ${
-                                isSelected
+                              className={`px-3 py-1.5 text-[11px] font-semibold rounded-lg border transition-all cursor-pointer ${isSelected
                                   ? "bg-cyan-dim border-cyan/30 text-primary"
                                   : "bg-surface-container border-outline text-text-muted hover:text-on-surface-variant hover:border-outline-variant"
-                              }`}
+                                }`}
                             >
                               {p}
                             </button>
@@ -1118,11 +1104,10 @@ export default function NewProjectWizard() {
                                 <button
                                   type="button"
                                   onClick={() => toggleItem(automationPrefs, setAutomationPrefs, item)}
-                                  className={`w-4 h-4 rounded border flex items-center justify-center transition-all flex-shrink-0 cursor-pointer ${
-                                    checked
+                                  className={`w-4 h-4 rounded border flex items-center justify-center transition-all flex-shrink-0 cursor-pointer ${checked
                                       ? "bg-primary border-primary"
                                       : "border-outline group-hover:border-outline-variant"
-                                  }`}
+                                    }`}
                                 >
                                   {checked && <Check size={10} strokeWidth={3} className="text-on-primary-container" />}
                                 </button>
@@ -1151,11 +1136,10 @@ export default function NewProjectWizard() {
                                 <button
                                   type="button"
                                   onClick={() => toggleItem(humanReviewCats, setHumanReviewCats, item)}
-                                  className={`w-4 h-4 rounded border flex items-center justify-center transition-all flex-shrink-0 cursor-pointer ${
-                                    checked
+                                  className={`w-4 h-4 rounded border flex items-center justify-center transition-all flex-shrink-0 cursor-pointer ${checked
                                       ? "bg-primary border-primary"
                                       : "border-outline group-hover:border-outline-variant"
-                                  }`}
+                                    }`}
                                 >
                                   {checked && <Check size={10} strokeWidth={3} className="text-on-primary-container" />}
                                 </button>
@@ -1349,11 +1333,10 @@ export default function NewProjectWizard() {
                                 key={opt}
                                 type="button"
                                 onClick={() => toggleItem(qaCoverage, setQaCoverage, opt)}
-                                className={`px-2.5 py-1 text-[10px] font-semibold rounded border transition-all cursor-pointer ${
-                                  isSelected
+                                className={`px-2.5 py-1 text-[10px] font-semibold rounded border transition-all cursor-pointer ${isSelected
                                     ? "bg-cyan-dim border-cyan/30 text-primary"
                                     : "bg-surface-container border-outline text-text-muted hover:border-outline-variant"
-                                }`}
+                                  }`}
                               >
                                 {opt}
                               </button>
@@ -1437,13 +1420,12 @@ export default function NewProjectWizard() {
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              className={`p-3 rounded-lg neo-border bg-surface shadow-2xl flex items-center gap-3 text-xs border-l-4 ${
-                toast.type === "success"
+              className={`p-3 rounded-lg neo-border bg-surface shadow-2xl flex items-center gap-3 text-xs border-l-4 ${toast.type === "success"
                   ? "border-l-primary text-on-surface"
                   : toast.type === "error"
-                  ? "border-l-magenta text-on-surface"
-                  : "border-l-yellow text-on-surface"
-              }`}
+                    ? "border-l-magenta text-on-surface"
+                    : "border-l-yellow text-on-surface"
+                }`}
             >
               <Info size={14} className={toast.type === "success" ? "text-primary" : "text-magenta"} />
               <span className="flex-1">{toast.message}</span>

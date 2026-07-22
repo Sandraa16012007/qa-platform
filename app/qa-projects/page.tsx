@@ -26,7 +26,7 @@ import {
   Sparkles,
   Info
 } from "lucide-react";
-import Sidebar from "../components/Sidebar";
+import Sidebar, { SIDEBAR_EXPANDED_WIDTH, SIDEBAR_COLLAPSED_WIDTH } from "../components/Sidebar";
 import Header from "../components/Header";
 import Link from "next/link";
 
@@ -230,6 +230,26 @@ function QaProjectsPageContent() {
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Sidebar state
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("qa-sidebar-collapsed");
+    if (stored !== null) {
+      setSidebarCollapsed(stored === "true");
+    }
+  }, []);
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("qa-sidebar-collapsed", String(next));
+      return next;
+    });
+  };
+
+  const sidebarWidth = sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH;
+
   // Modal States
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newProjName, setNewProjName] = useState("");
@@ -399,15 +419,14 @@ function QaProjectsPageContent() {
   return (
     <div className="flex overflow-hidden w-full">
       {/* Sidebar Navigation */}
-      <Sidebar />
+      <Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
 
       {/* Main content viewport */}
       <main
-        style={{ marginLeft: 260 }}
         className="flex-1 h-screen overflow-y-auto"
       >
         {/* Top Header */}
-        <Header />
+        <Header sidebarWidth={sidebarWidth} />
 
         {/* Content Spacer for fixed header */}
         <div style={{ height: 64 }} />
@@ -436,15 +455,16 @@ function QaProjectsPageContent() {
               </p>
             </div>
             <div className="flex-shrink-0 z-10">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setIsCreateModalOpen(true)}
-                className="bg-primary text-on-primary-container px-5 py-3 text-xs font-semibold uppercase tracking-widest flex items-center justify-center gap-2 hover:opacity-90 transition-all rounded-lg cursor-pointer"
-              >
-                <PlusCircle size={16} strokeWidth={2} />
-                New QA Project
-              </motion.button>
+              <Link href="/qa-projects/new">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="bg-primary text-on-primary-container px-5 py-3 text-xs font-semibold uppercase tracking-widest flex items-center justify-center gap-2 hover:opacity-90 transition-all rounded-lg cursor-pointer"
+                >
+                  <PlusCircle size={16} strokeWidth={2} />
+                  New QA Project
+                </motion.button>
+              </Link>
             </div>
           </motion.section>
 
@@ -610,13 +630,14 @@ function QaProjectsPageContent() {
                       Clear Filters
                     </button>
                   )}
-                  <button
-                    onClick={() => setIsCreateModalOpen(true)}
-                    className="bg-primary text-on-primary-container px-4 py-2 text-xs font-semibold uppercase tracking-widest flex items-center gap-1.5 rounded-lg hover:opacity-90 transition-all cursor-pointer"
-                  >
-                    <Plus size={14} strokeWidth={2.5} />
-                    New QA Project
-                  </button>
+                  <Link href="/qa-projects/new">
+                    <button
+                      className="bg-primary text-on-primary-container px-4 py-2 text-xs font-semibold uppercase tracking-widest flex items-center gap-1.5 rounded-lg hover:opacity-90 transition-all cursor-pointer"
+                    >
+                      <Plus size={14} strokeWidth={2.5} />
+                      New QA Project
+                    </button>
+                  </Link>
                 </div>
               </motion.div>
             ) : (
@@ -822,213 +843,7 @@ function QaProjectsPageContent() {
         <footer className="p-6 border-t border-outline-variant bg-surface-container-lowest mt-8" />
       </main>
 
-      {/* CREATE NEW PROJECT MODAL */}
-      <AnimatePresence>
-        {isCreateModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsCreateModalOpen(false)}
-              className="absolute inset-0 bg-background/80 backdrop-blur-sm"
-            />
-
-            {/* Modal Body */}
-            <motion.div
-              initial={{ scale: 0.95, y: 15, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.95, y: 15, opacity: 0 }}
-              transition={{ type: "spring", duration: 0.3 }}
-              className="bg-surface neo-border p-6 rounded-xl w-full max-w-lg space-y-6 shadow-2xl relative z-10"
-            >
-              {/* Modal Header */}
-              <div className="flex justify-between items-center border-b border-outline-variant pb-3">
-                <div className="flex items-center gap-2">
-                  <Sparkles size={18} className="text-primary" />
-                  <h3 className="font-bold text-lg uppercase tracking-tight text-on-surface font-mono">
-                    Initialize QA Project
-                  </h3>
-                </div>
-                <button
-                  onClick={() => setIsCreateModalOpen(false)}
-                  className="text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              {/* Modal Form */}
-              <form onSubmit={handleCreateProject} className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono block">
-                    Project Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. CreativeHub"
-                    className="w-full bg-surface-container-low border border-outline rounded-lg focus:border-primary focus:outline-none text-on-surface font-sans text-sm px-4 py-2.5"
-                    value={newProjName}
-                    onChange={(e) => setNewProjName(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono block">
-                    Product Domain / Description
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Portfolio Platform"
-                    className="w-full bg-surface-container-low border border-outline rounded-lg focus:border-primary focus:outline-none text-on-surface font-sans text-sm px-4 py-2.5"
-                    value={newProjDesc}
-                    onChange={(e) => setNewProjDesc(e.target.value)}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono block">
-                      Application Type
-                    </label>
-                    <select
-                      className="w-full bg-surface-container-low border border-outline rounded-lg focus:border-primary focus:outline-none text-on-surface text-xs font-semibold px-4 py-2.5 cursor-pointer"
-                      value={newProjType}
-                      onChange={(e) => setNewProjType(e.target.value)}
-                    >
-                      <option value="Web App">Web App</option>
-                      <option value="Mobile App">Mobile App</option>
-                      <option value="Desktop">Desktop</option>
-                      <option value="API">API</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono block">
-                      Initial Status
-                    </label>
-                    <select
-                      className="w-full bg-surface-container-low border border-outline rounded-lg focus:border-primary focus:outline-none text-on-surface text-xs font-semibold px-4 py-2.5 cursor-pointer"
-                      value={newProjStatus}
-                      onChange={(e) => setNewProjStatus(e.target.value)}
-                    >
-                      <option value="Draft">Draft</option>
-                      <option value="Framework Generated">Framework Generated</option>
-                      <option value="Testing">Testing</option>
-                      <option value="Human Review">Human Review</option>
-                      <option value="Ready">Ready</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 border-t border-outline-variant pt-4">
-                  <div className="space-y-1">
-                    <div className="flex justify-between items-center">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono block">
-                        Overall Quality Score
-                      </label>
-                      <span className="text-xs font-mono font-bold text-primary">{newProjQuality}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      className="w-full bg-surface-container border border-outline rounded-lg h-2 accent-primary cursor-pointer"
-                      value={newProjQuality}
-                      onChange={(e) => setNewProjQuality(parseInt(e.target.value))}
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono block">
-                      Framework Version
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. v1.0"
-                      className="w-full bg-surface-container-low border border-outline rounded-lg focus:border-primary focus:outline-none text-on-surface font-sans text-sm px-4 py-2.5"
-                      value={newProjVer}
-                      onChange={(e) => setNewProjVer(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-3 border-t border-outline-variant pt-4">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono block">
-                    Execution Stage Progress
-                  </span>
-
-                  {/* Framework */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-on-surface-variant font-mono">Framework Progress</span>
-                      <span className="font-mono text-primary font-bold">{newProjFramework}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      className="w-full bg-surface-container h-2 accent-primary cursor-pointer"
-                      value={newProjFramework}
-                      onChange={(e) => setNewProjFramework(parseInt(e.target.value))}
-                    />
-                  </div>
-
-                  {/* Automation */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-on-surface-variant font-mono">Automation Progress</span>
-                      <span className="font-mono text-primary font-bold">{newProjAutomation}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      className="w-full bg-surface-container h-2 accent-primary cursor-pointer"
-                      value={newProjAutomation}
-                      onChange={(e) => setNewProjAutomation(parseInt(e.target.value))}
-                    />
-                  </div>
-
-                  {/* Human Review */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-on-surface-variant font-mono">Human Review Progress</span>
-                      <span className="font-mono text-primary font-bold">{newProjHuman}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      className="w-full bg-surface-container h-2 accent-primary cursor-pointer"
-                      value={newProjHuman}
-                      onChange={(e) => setNewProjHuman(parseInt(e.target.value))}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-3 pt-4 border-t border-outline-variant">
-                  <button
-                    type="button"
-                    onClick={() => setIsCreateModalOpen(false)}
-                    className="px-4 py-2.5 border border-outline hover:border-outline-variant hover:text-on-surface text-xs font-semibold uppercase tracking-wider rounded-lg text-on-surface-variant transition-all cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="bg-primary text-on-primary-container px-5 py-2.5 text-xs font-semibold uppercase tracking-widest hover:opacity-90 transition-all rounded-lg cursor-pointer"
-                  >
-                    Initialize Project
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      
 
       {/* Floating Toasts container */}
       <div className="fixed bottom-4 right-4 z-50 space-y-2 max-w-sm">
@@ -1074,7 +889,6 @@ export default function QaProjectsPage() {
         <div className="flex overflow-hidden bg-background text-foreground h-screen w-full">
           <Sidebar />
           <main
-            style={{ marginLeft: 260 }}
             className="flex-1 h-screen overflow-y-auto bg-background"
           >
             <Header />
