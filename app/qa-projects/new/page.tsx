@@ -7,7 +7,8 @@ import Link from "next/link";
 import { Save, ArrowLeft, Info, X, CheckCircle2 } from "lucide-react";
 import Sidebar from "../../components/Sidebar";
 import Header from "../../components/Header";
-import { Toast } from "../../types";
+import { useUiStore } from "../../stores/useUiStore";
+import { useAiUnderstandingStore } from "../../stores/useAiUnderstandingStore";
 
 import Step0Basics from "./components/Step0Basics";
 import Step1Context from "./components/Step1Context";
@@ -36,18 +37,19 @@ const slideVariants = {
 export default function NewProjectWizard() {
   const router = useRouter();
 
-  /* ── Navigation state ── */
-  const [currentStep, setCurrentStep] = useState(0);
-  const [direction, setDirection] = useState(1);
-  const [isGenerating, setIsGenerating] = useState(false);
+  /* ── Navigation state (global UI store) ── */
+  const currentStep = useUiStore((state) => state.wizardStep);
+  const direction = useUiStore((state) => state.wizardDirection);
+  const setCurrentStep = useUiStore((state) => state.setWizardStep);
+  const goWizardNext = useUiStore((state) => state.goWizardNext);
+  const goWizardPrev = useUiStore((state) => state.goWizardPrev);
+  const isGenerating = useUiStore((state) => state.isGeneratingFramework);
+  const setIsGenerating = useUiStore((state) => state.setIsGeneratingFramework);
 
-  /* ── Toast state ── */
-  const [toasts, setToasts] = useState<Toast[]>([]);
-  const showToast = useCallback((message: string, type: Toast["type"] = "success") => {
-    const id = Date.now().toString();
-    setToasts((p) => [...p, { id, message, type }]);
-    setTimeout(() => setToasts((p) => p.filter((t) => t.id !== id)), 3000);
-  }, []);
+  /* ── Toast state (global UI store) ── */
+  const toasts = useUiStore((state) => state.toasts);
+  const showToast = useUiStore((state) => state.showToast);
+  const removeToast = useUiStore((state) => state.removeToast);
 
   /* ── Step 0: Project Basics ── */
   const [projectName, setProjectName] = useState("");
@@ -84,16 +86,32 @@ export default function NewProjectWizard() {
   ]);
   const [additionalInstructions, setAdditionalInstructions] = useState("");
 
-  /* ── Step 3: AI Understanding ── */
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [aiSummary, setAiSummary] = useState("");
-  const [detectedUsers, setDetectedUsers] = useState<string[]>([]);
-  const [detectedFeatures, setDetectedFeatures] = useState<string[]>([]);
-  const [criticalWorkflows, setCriticalWorkflows] = useState<string[]>([]);
-  const [riskAreas, setRiskAreas] = useState<string[]>([]);
-  const [qaCoverage, setQaCoverage] = useState<string[]>([...QA_COVERAGE_OPTIONS]);
+  /* ── Step 3: AI Understanding (global store — shared with Project Overview tab) ── */
+  const isAnalyzing = useAiUnderstandingStore((state) => state.isAnalyzing);
+  const setIsAnalyzing = useAiUnderstandingStore((state) => state.setIsAnalyzing);
+  const aiSummary = useAiUnderstandingStore((state) => state.summary);
+  const setAiSummary = useAiUnderstandingStore((state) => state.updateSummary);
+  const detectedUsers = useAiUnderstandingStore((state) => state.detectedUsers);
+  const setDetectedUsers = useAiUnderstandingStore((state) => state.updateUsers);
+  const detectedFeatures = useAiUnderstandingStore((state) => state.detectedFeatures);
+  const setDetectedFeatures = useAiUnderstandingStore((state) => state.updateFeatures);
+  const criticalWorkflows = useAiUnderstandingStore((state) => state.criticalWorkflows);
+  const setCriticalWorkflows = useAiUnderstandingStore((state) => state.updateWorkflows);
+  const riskAreas = useAiUnderstandingStore((state) => state.riskAreas);
+  const setRiskAreas = useAiUnderstandingStore((state) => state.updateRisks);
+  const qaCoverage = useAiUnderstandingStore((state) => state.qaCoverage);
+  const setQaCoverage = useAiUnderstandingStore((state) => state.setQaCoverage);
+  const isEditingSummary = useAiUnderstandingStore((state) => state.isEditingSummary);
+  const setIsEditingSummary = useAiUnderstandingStore((state) => state.setIsEditingSummary);
   const [aiReady, setAiReady] = useState(false);
-  const [isEditingSummary, setIsEditingSummary] = useState(false);
+
+  // Seed default QA coverage selection once on mount
+  useEffect(() => {
+    if (qaCoverage.length === 0) {
+      setQaCoverage([...QA_COVERAGE_OPTIONS]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* ── Step 4: Generation ── */
   const [genCompleted, setGenCompleted] = useState(0);
@@ -141,14 +159,12 @@ export default function NewProjectWizard() {
       showToast("Please fill in all required fields", "error");
       return;
     }
-    setDirection(1);
-    setCurrentStep((p) => Math.min(p + 1, 3));
-  }, [currentStep, validateStep0, showToast]);
+    goWizardNext();
+  }, [currentStep, validateStep0, showToast, goWizardNext]);
 
   const goPrev = useCallback(() => {
-    setDirection(-1);
-    setCurrentStep((p) => Math.max(p - 1, 0));
-  }, []);
+    goWizardPrev();
+  }, [goWizardPrev]);
 
   /* ── Simulate AI analysis when entering step 3 ── */
   useEffect(() => {
@@ -288,7 +304,6 @@ export default function NewProjectWizard() {
                       type="button"
                       onClick={() => {
                         if (isDone) {
-                          setDirection(idx < currentStep ? -1 : 1);
                           setCurrentStep(idx);
                         }
                       }}
@@ -462,7 +477,7 @@ export default function NewProjectWizard() {
               <span className="flex-1">{toast.message}</span>
               <button
                 type="button"
-                onClick={() => setToasts((p) => p.filter((t) => t.id !== toast.id))}
+                onClick={() => removeToast(toast.id)}
                 className="text-text-muted hover:text-on-surface cursor-pointer"
               >
                 <X size={12} />

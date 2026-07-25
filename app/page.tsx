@@ -1,32 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import Sidebar, { SIDEBAR_EXPANDED_WIDTH, SIDEBAR_COLLAPSED_WIDTH } from "./components/Sidebar";
 import Header from "./components/Header";
 import HeroSection from "./components/HeroSection";
 import WorkflowSection from "./components/WorkflowSection";
 import MetricsPanel from "./components/MetricsPanel";
 import RecentProjects from "./components/RecentProjects";
-
-const STORAGE_KEY = "qa-sidebar-collapsed";
+import { useUiStore } from "./stores/useUiStore";
 
 export default function Home() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const sidebarCollapsed = useUiStore((state) => state.sidebarCollapsed);
+  const toggleSidebar = useUiStore((state) => state.toggleSidebar);
+  const initSidebarFromStorage = useUiStore((state) => state.initSidebarFromStorage);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored !== null) {
-      setSidebarCollapsed(stored === "true");
-    }
-  }, []);
-
-  const toggleSidebar = () => {
-    setSidebarCollapsed((prev) => {
-      const next = !prev;
-      localStorage.setItem(STORAGE_KEY, String(next));
-      return next;
-    });
-  };
+    initSidebarFromStorage();
+  }, [initSidebarFromStorage]);
 
   const sidebarWidth = sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH;
 

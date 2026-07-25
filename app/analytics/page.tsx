@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -19,13 +19,16 @@ import {
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
 import { mockWorkspaceAnalytics } from "../qa-projects/[id]/mockData";
+import { useUiStore } from "../stores/useUiStore";
 
 export default function AnalyticsPage() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const sidebarCollapsed = useUiStore((state) => state.sidebarCollapsed);
+  const toggleSidebar = useUiStore((state) => state.toggleSidebar);
+  const initSidebarFromStorage = useUiStore((state) => state.initSidebarFromStorage);
 
-  const toggleSidebar = () => {
-    setSidebarCollapsed((prev) => !prev);
-  };
+  useEffect(() => {
+    initSidebarFromStorage();
+  }, [initSidebarFromStorage]);
 
   // Filter States
   const [timeRange, setTimeRange] = useState("Last 30 Days");

@@ -27,19 +27,21 @@ import {
   TestRun,
   QaCheck,
   DetailedTestRun,
-  HumanReviewItem,
   IssueItem,
   PageNote,
-  Toast,
 } from "./types";
 import {
-  projectDatabase,
-  initialQaChecks,
   initialDetailedRuns,
-  initialHumanReviews,
   initialIssues,
   initialPageNotes,
 } from "./mockData";
+
+// Global stores
+import { useUiStore } from "../../stores/useUiStore";
+import { useProjectStore } from "../../stores/useProjectStore";
+import { useFrameworkStore } from "../../stores/useFrameworkStore";
+import { useHumanReviewStore } from "../../stores/useHumanReviewStore";
+import { useAiUnderstandingStore } from "../../stores/useAiUnderstandingStore";
 
 // Components
 import ProjectHeader from "./components/ProjectHeader";
@@ -58,69 +60,96 @@ import ReportsTab from "./components/tabs/ReportsTab";
 function ProjectDashboardContent({ id }: { id: string }) {
   const router = useRouter();
 
-  // Selected project check
+  // Selected project (global project store — single source of truth)
+  const projects = useProjectStore((state) => state.projects);
+  const selectProjectInStore = useProjectStore((state) => state.selectProject);
   const project = useMemo(() => {
-    return projectDatabase[id] || projectDatabase["1"];
-  }, [id]);
-
-  // Tab State
-  const [activeTab, setActiveTab] = useState("Overview");
-
-  // Sidebar State (default collapsed on project detail page)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+    return projects.find((p) => p.id === id) || projects[0];
+  }, [projects, id]);
 
   useEffect(() => {
-    const stored = localStorage.getItem("qa-sidebar-collapsed");
-    if (stored !== null) {
-      setSidebarCollapsed(stored === "true");
-    }
-  }, []);
+    selectProjectInStore(id);
+  }, [id, selectProjectInStore]);
 
-  const toggleSidebar = () => {
-    setSidebarCollapsed((prev) => {
-      const next = !prev;
-      localStorage.setItem("qa-sidebar-collapsed", String(next));
-      return next;
-    });
-  };
+  // Tab State (global UI store)
+  const activeTab = useUiStore((state) => state.activeTab);
+  const setActiveTab = useUiStore((state) => state.setActiveTab);
+
+  // Sidebar State (global UI store — defaults to collapsed on project detail page)
+  const sidebarCollapsed = useUiStore((state) => state.sidebarCollapsed);
+  const toggleSidebar = useUiStore((state) => state.toggleSidebar);
+  const initSidebarFromStorage = useUiStore((state) => state.initSidebarFromStorage);
+
+  useEffect(() => {
+    initSidebarFromStorage();
+  }, [initSidebarFromStorage]);
 
   const sidebarWidth = sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH;
 
-  // Quality Score & Summary States
+  // Quality Score States
   const [currentScore, setCurrentScore] = useState(project.qualityScore);
   const [scoreAnimation, setScoreAnimation] = useState(false);
-  const [isEditingSummary, setIsEditingSummary] = useState(false);
-  const [summaryText, setSummaryText] = useState(
-    `${project.name} is a high-performance ${project.type} optimized for user engagement. Features modular navigation structure, robust UI components, and integrated platform security.`
-  );
 
-  // Editable lists
-  const [users, setUsers] = useState(["Creators", "Recruiters", "Visitors", "Administrators"]);
-  const [features, setFeatures] = useState([
-    "Authentication",
-    "Portfolio Upload",
-    "Project Discovery",
-    "Comments",
-    "Likes",
-    "Search",
-    "Notifications",
-    "Analytics",
-  ]);
-  const [workflows, setWorkflows] = useState([
-    "Create Account",
-    "Upload Portfolio",
-    "Browse Projects",
-    "Follow Creators",
-    "Manage Profile",
-    "Search Content",
-  ]);
-  const [risks, setRisks] = useState([
-    "Media Upload Reliability",
-    "Search Accuracy",
-    "Mobile Responsiveness",
-    "Accessibility",
-    "Large Content Rendering",
-  ]);
+  // AI Understanding / Project Summary (global store — shared with the New Project wizard)
+  const isEditingSummary = useAiUnderstandingStore((state) => state.isEditingSummary);
+  const setIsEditingSummary = useAiUnderstandingStore((state) => state.setIsEditingSummary);
+  const summaryFromStore = useAiUnderstandingStore((state) => state.summary);
+  const setSummaryText = useAiUnderstandingStore((state) => state.updateSummary);
+  const summaryText =
+    summaryFromStore ||
+    `${project.name} is a high-performance ${project.type} optimized for user engagement. Features modular navigation structure, robust UI components, and integrated platform security.`;
+
+
+  // Editable lists (global store — shared with the New Project wizard's AI Understanding step)
+  const detectedUsersFromStore = useAiUnderstandingStore((state) => state.detectedUsers);
+  const setUsers = useAiUnderstandingStore((state) => state.updateUsers);
+  const users =
+    detectedUsersFromStore.length > 0
+      ? detectedUsersFromStore
+      : ["Creators", "Recruiters", "Visitors", "Administrators"];
+
+  const detectedFeaturesFromStore = useAiUnderstandingStore((state) => state.detectedFeatures);
+  const setFeatures = useAiUnderstandingStore((state) => state.updateFeatures);
+  const features =
+    detectedFeaturesFromStore.length > 0
+      ? detectedFeaturesFromStore
+      : [
+          "Authentication",
+          "Portfolio Upload",
+          "Project Discovery",
+          "Comments",
+          "Likes",
+          "Search",
+          "Notifications",
+          "Analytics",
+        ];
+
+  const criticalWorkflowsFromStore = useAiUnderstandingStore((state) => state.criticalWorkflows);
+  const setWorkflows = useAiUnderstandingStore((state) => state.updateWorkflows);
+  const workflows =
+    criticalWorkflowsFromStore.length > 0
+      ? criticalWorkflowsFromStore
+      : [
+          "Create Account",
+          "Upload Portfolio",
+          "Browse Projects",
+          "Follow Creators",
+          "Manage Profile",
+          "Search Content",
+        ];
+
+  const riskAreasFromStore = useAiUnderstandingStore((state) => state.riskAreas);
+  const setRisks = useAiUnderstandingStore((state) => state.updateRisks);
+  const risks =
+    riskAreasFromStore.length > 0
+      ? riskAreasFromStore
+      : [
+          "Media Upload Reliability",
+          "Search Accuracy",
+          "Mobile Responsiveness",
+          "Accessibility",
+          "Large Content Rendering",
+        ];
 
   // Overview Runs & Activities States
   const [runs, setRuns] = useState<TestRun[]>([
@@ -137,24 +166,26 @@ function ProjectDashboardContent({ id }: { id: string }) {
     { id: "5", time: "2 days ago", icon: Sparkles, description: "QA Framework generated from PRD docs", color: "text-magenta" },
   ]);
 
-  // QA Framework States
-  const [checks, setChecks] = useState<QaCheck[]>(initialQaChecks);
-  const [selectedLevel, setSelectedLevel] = useState<string>("Product QA");
-  const [selectedCheckId, setSelectedCheckId] = useState<string | null>(null);
-  const [collapsedCats, setCollapsedCats] = useState<Record<string, boolean>>({});
+  // QA Framework States (global store)
+  const checks = useFrameworkStore((state) => state.checks);
+  const updateCheckInStore = useFrameworkStore((state) => state.updateCheck);
+  const selectedLevel = useFrameworkStore((state) => state.selectedLevel);
+  const setSelectedLevel = useFrameworkStore((state) => state.selectLevel);
+  const selectedCheckId = useFrameworkStore((state) => state.selectedCheckId);
+  const setSelectedCheckId = useFrameworkStore((state) => state.selectCheck);
+  const collapsedCats = useFrameworkStore((state) => state.collapsedCats);
+  const toggleCategory = useFrameworkStore((state) => state.toggleCategory);
 
-  const toggleCategory = useCallback((catName: string) => {
-    setCollapsedCats((prev) => ({
-      ...prev,
-      [catName]: !prev[catName],
-    }));
-  }, []);
-
-  const [searchText, setSearchText] = useState("");
-  const [filterCategory, setFilterCategory] = useState("All");
-  const [filterPriority, setFilterPriority] = useState("All");
-  const [filterStatus, setFilterStatus] = useState("All");
-  const [filterAutomation, setFilterAutomation] = useState("All");
+  const searchText = useFrameworkStore((state) => state.searchText);
+  const setSearchText = useFrameworkStore((state) => state.setSearchText);
+  const filterCategory = useFrameworkStore((state) => state.filterCategory);
+  const setFilterCategory = useFrameworkStore((state) => state.setFilterCategory);
+  const filterPriority = useFrameworkStore((state) => state.filterPriority);
+  const setFilterPriority = useFrameworkStore((state) => state.setFilterPriority);
+  const filterStatus = useFrameworkStore((state) => state.filterStatus);
+  const setFilterStatus = useFrameworkStore((state) => state.setFilterStatus);
+  const filterAutomation = useFrameworkStore((state) => state.filterAutomation);
+  const setFilterAutomation = useFrameworkStore((state) => state.setFilterAutomation);
 
   const selectedCheck = useMemo(() => {
     return checks.find((c) => c.id === selectedCheckId) || null;
@@ -254,8 +285,9 @@ function ProjectDashboardContent({ id }: { id: string }) {
   const [runningSuite, setRunningSuite] = useState("");
   const [runningIntervalId, setRunningIntervalId] = useState<any>(null);
 
-  // Human Reviews Tab State
-  const [humanReviews, setHumanReviews] = useState<HumanReviewItem[]>(initialHumanReviews);
+  // Human Reviews Tab State (global store)
+  const humanReviews = useHumanReviewStore((state) => state.humanReviews);
+  const setHumanReviews = useHumanReviewStore((state) => state.setHumanReviews);
 
   // Issues Tab & Page Notes State
   const [issues, setIssues] = useState<IssueItem[]>(initialIssues);
@@ -270,15 +302,10 @@ function ProjectDashboardContent({ id }: { id: string }) {
     setActiveTab("Human Reviews");
   };
 
-  // Toast System
-  const [toasts, setToasts] = useState<Toast[]>([]);
-  const showToast = (message: string, type: Toast["type"] = "success") => {
-    const tid = Date.now().toString();
-    setToasts((prev) => [...prev, { id: tid, message, type }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== tid));
-    }, 3000);
-  };
+  // Toast System (global UI store)
+  const toasts = useUiStore((state) => state.toasts);
+  const showToast = useUiStore((state) => state.showToast);
+  const removeToast = useUiStore((state) => state.removeToast);
 
   // Filtered & Sorted Test Runs memo
   const filteredRuns = useMemo(() => {
@@ -513,23 +540,16 @@ function ProjectDashboardContent({ id }: { id: string }) {
   // Save QA Check details edit
   const handleSaveCheck = () => {
     if (!selectedCheckId) return;
-    setChecks((prev) =>
-      prev.map((c) =>
-        c.id === selectedCheckId
-          ? {
-              ...c,
-              title: editTitle,
-              category: editCategory,
-              priority: editPriority,
-              status: editStatus,
-              description: editDescription,
-              expectedBehavior: editExpected,
-              notes: editNotes,
-              acceptanceCriteria: editCriteria,
-            }
-          : c
-      )
-    );
+    updateCheckInStore(selectedCheckId, {
+      title: editTitle,
+      category: editCategory,
+      priority: editPriority,
+      status: editStatus,
+      description: editDescription,
+      expectedBehavior: editExpected,
+      notes: editNotes,
+      acceptanceCriteria: editCriteria,
+    });
     showToast("QA Check details updated successfully!", "success");
   };
 
@@ -816,7 +836,7 @@ function ProjectDashboardContent({ id }: { id: string }) {
                 <span className="truncate">{toast.message}</span>
               </div>
               <button
-                onClick={() => setToasts((prev) => prev.filter((t) => t.id !== toast.id))}
+                onClick={() => removeToast(toast.id)}
                 className="text-on-surface-variant hover:text-on-surface text-xs cursor-pointer"
               >
                 <X size={12} />

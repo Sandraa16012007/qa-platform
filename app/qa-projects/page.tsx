@@ -6,8 +6,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, Info, X, RotateCw } from "lucide-react";
 import Sidebar, { SIDEBAR_EXPANDED_WIDTH, SIDEBAR_COLLAPSED_WIDTH } from "../components/Sidebar";
 import Header from "../components/Header";
-import { Project, Toast } from "../types";
-import { allProjectsList } from "../mockData";
+import { Project } from "../types";
+import { useProjectStore } from "../stores/useProjectStore";
+import { useUiStore } from "../stores/useUiStore";
 
 import ProjectsHeader from "./components/ProjectsHeader";
 import ProjectCardItem from "./components/ProjectCardItem";
@@ -16,27 +17,21 @@ import ProjectModals from "./components/ProjectModals";
 function ProjectsContent() {
   const searchParams = useSearchParams();
 
-  // Sidebar Collapse state
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // Sidebar Collapse state (global UI store)
+  const sidebarCollapsed = useUiStore((state) => state.sidebarCollapsed);
+  const toggleSidebar = useUiStore((state) => state.toggleSidebar);
+  const initSidebarFromStorage = useUiStore((state) => state.initSidebarFromStorage);
   useEffect(() => {
-    const stored = localStorage.getItem("qa-sidebar-collapsed");
-    if (stored !== null) {
-      setSidebarCollapsed(stored === "true");
-    }
-  }, []);
-
-  const toggleSidebar = () => {
-    setSidebarCollapsed((prev) => {
-      const next = !prev;
-      localStorage.setItem("qa-sidebar-collapsed", String(next));
-      return next;
-    });
-  };
+    initSidebarFromStorage();
+  }, [initSidebarFromStorage]);
 
   const sidebarWidth = sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH;
 
-  // Projects State initialized from centralized mockData single source of truth
-  const [projects, setProjects] = useState<Project[]>(allProjectsList);
+  // Projects State (global project store — single source of truth)
+  const projects = useProjectStore((state) => state.projects);
+  const updateProjectInStore = useProjectStore((state) => state.updateProject);
+  const deleteProjectInStore = useProjectStore((state) => state.deleteProject);
+  const createProjectInStore = useProjectStore((state) => state.createProject);
 
   // Filters State
   const [searchQuery, setSearchQuery] = useState("");
@@ -47,13 +42,10 @@ function ProjectsContent() {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
 
-  // Toast System
-  const [toasts, setToasts] = useState<Toast[]>([]);
-  const showToast = (message: string, type: Toast["type"] = "success") => {
-    const id = Date.now().toString();
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3000);
-  };
+  // Toast System (global UI store)
+  const toasts = useUiStore((state) => state.toasts);
+  const showToast = useUiStore((state) => state.showToast);
+  const removeToast = useUiStore((state) => state.removeToast);
 
   // Filtered Projects
   const filteredProjects = useMemo(() => {
@@ -74,22 +66,20 @@ function ProjectsContent() {
 
   // Modal Action Handlers
   const handleSaveEdit = (updated: Project) => {
-    setProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+    updateProjectInStore(updated.id, updated);
     setEditingProject(null);
     showToast(`Updated settings for "${updated.name}"!`, "success");
   };
 
   const handleDuplicate = (target: Project) => {
-    const copyId = Date.now().toString();
-    const duplicated: Project = {
-      ...target,
-      id: copyId,
+    const { id: _omit, ...rest } = target;
+    createProjectInStore({
+      ...rest,
       name: `${target.name} (Copy)`,
       createdDate: "Just now",
       lastUpdated: "Just now",
       status: "Draft",
-    };
-    setProjects((prev) => [duplicated, ...prev]);
+    });
     showToast(`Duplicated "${target.name}"!`, "info");
   };
 
@@ -99,7 +89,7 @@ function ProjectsContent() {
 
   const handleConfirmDelete = (id: string) => {
     const target = projects.find((p) => p.id === id);
-    setProjects((prev) => prev.filter((p) => p.id !== id));
+    deleteProjectInStore(id);
     setDeletingProject(null);
     if (target) {
       showToast(`Deleted project "${target.name}"`, "warning");
@@ -183,7 +173,7 @@ function ProjectsContent() {
                 <span className="truncate">{toast.message}</span>
               </div>
               <button
-                onClick={() => setToasts((prev) => prev.filter((t) => t.id !== toast.id))}
+                onClick={() => removeToast(toast.id)}
                 className="text-text-muted hover:text-on-surface cursor-pointer"
               >
                 <X size={12} />

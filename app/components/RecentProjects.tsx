@@ -3,10 +3,11 @@
 import { motion } from "framer-motion";
 import { ArrowRight, CheckCircle2, PlusCircle } from "lucide-react";
 import Link from "next/link";
-import { allProjectsList } from "../mockData";
+import { useProjectStore } from "../stores/useProjectStore";
 
 export default function RecentProjects() {
-  const recentProject = allProjectsList[0] || {
+  const projects = useProjectStore((state) => state.projects);
+  const recentProject = projects[0] || {
     id: "1",
     name: "CreativeHub",
     qualityScore: 87,
