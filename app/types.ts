@@ -2,6 +2,7 @@ export interface Project {
   id: string;
   name: string;
   type: string;
+  domain: string;
   description: string;
   qualityScore: number;
   status: string;
@@ -40,6 +41,7 @@ export interface QaCheck {
   id: string;
   title: string;
   level: "Product QA" | "Page QA" | "Component QA" | "Feature QA" | "Release QA";
+  pageName?: string;
   category: string;
   priority: "Critical" | "High" | "Medium" | "Low";
   status: "Not Started" | "In Progress" | "Passed" | "Failed" | "Skipped";
@@ -73,6 +75,7 @@ export interface DetailedTestRun {
 
 export interface HumanReviewItem {
   id: string;
+  checkId: string;
   title: string;
   level: "Product QA" | "Page QA" | "Component QA" | "Feature QA" | "Release QA";
   category: string;

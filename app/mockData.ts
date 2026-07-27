@@ -20,6 +20,7 @@ export const projectDatabase: Record<string, Project> = {
     id: "1",
     name: "CreativeHub",
     type: "Web App",
+    domain: "Creative / Portfolio",
     description: "Portfolio Platform",
     qualityScore: 87,
     status: "Human Review",
@@ -39,6 +40,7 @@ export const projectDatabase: Record<string, Project> = {
     id: "2",
     name: "LearnPro",
     type: "Web App",
+    domain: "Education",
     description: "EdTech Platform",
     qualityScore: 94,
     status: "Ready",
@@ -58,6 +60,7 @@ export const projectDatabase: Record<string, Project> = {
     id: "3",
     name: "API Gateway",
     type: "API",
+    domain: "Backend / Infrastructure",
     description: "Backend Service",
     qualityScore: 72,
     status: "Testing",
@@ -77,6 +80,7 @@ export const projectDatabase: Record<string, Project> = {
     id: "4",
     name: "ShopFlow",
     type: "Web App",
+    domain: "E-commerce",
     description: "E-commerce",
     qualityScore: 81,
     status: "Framework Generated",
@@ -314,6 +318,7 @@ export const initialDetailedRuns: DetailedTestRun[] = [
 export const initialHumanReviews: HumanReviewItem[] = [
   {
     id: "hr-1",
+    checkId: "check-1",
     title: "Review Navigation Hierarchy & Breadcrumb Flow",
     level: "Product QA",
     category: "Navigation",
@@ -331,6 +336,7 @@ export const initialHumanReviews: HumanReviewItem[] = [
   },
   {
     id: "hr-2",
+    checkId: "check-2",
     title: "Dark Theme Aesthetic & Contrast Rhythm",
     level: "Product QA",
     category: "Branding",
@@ -348,6 +354,7 @@ export const initialHumanReviews: HumanReviewItem[] = [
   },
   {
     id: "hr-3",
+    checkId: "check-3",
     title: "Form Validation Recovery & Microcopy Tone",
     level: "Page QA",
     category: "User Experience",

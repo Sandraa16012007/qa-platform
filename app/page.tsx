@@ -8,15 +8,21 @@ import WorkflowSection from "./components/WorkflowSection";
 import MetricsPanel from "./components/MetricsPanel";
 import RecentProjects from "./components/RecentProjects";
 import { useUiStore } from "./stores/useUiStore";
+import { useProjectStore } from "./stores/useProjectStore";
 
 export default function Home() {
   const sidebarCollapsed = useUiStore((state) => state.sidebarCollapsed);
   const toggleSidebar = useUiStore((state) => state.toggleSidebar);
   const initSidebarFromStorage = useUiStore((state) => state.initSidebarFromStorage);
+  const loadProjects = useProjectStore((state) => state.loadProjects);
 
   useEffect(() => {
     initSidebarFromStorage();
   }, [initSidebarFromStorage]);
+
+  useEffect(() => {
+    loadProjects();
+  }, [loadProjects]);
 
   const sidebarWidth = sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH;
 

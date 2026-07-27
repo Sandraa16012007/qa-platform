@@ -291,6 +291,11 @@ export default function QaFrameworkTab({
                                     </td>
                                     <td className="p-3 font-medium text-on-surface max-w-xs truncate" title={checkRow.title}>
                                       {checkRow.title}
+                                      {checkRow.pageName ? (
+                                        <div className="text-[9px] font-mono uppercase tracking-wider text-text-muted mt-0.5 truncate">
+                                          {checkRow.pageName}
+                                        </div>
+                                      ) : null}
                                     </td>
                                     <td className="p-3">
                                       <span className={`tag font-mono uppercase text-[9px] ${getPriorityBadgeClass(checkRow.priority)}`}>

@@ -9,12 +9,17 @@ interface QaCheckDrawerProps {
   onClose: () => void;
   editTitle: string;
   setEditTitle: (val: string) => void;
+  editPageName: string;
+  setEditPageName: (val: string) => void;
   editCategory: string;
   setEditCategory: (val: string) => void;
   editPriority: "Critical" | "High" | "Medium" | "Low";
   setEditPriority: (val: "Critical" | "High" | "Medium" | "Low") => void;
   editStatus: "Not Started" | "In Progress" | "Passed" | "Failed" | "Skipped";
   setEditStatus: (val: "Not Started" | "In Progress" | "Passed" | "Failed" | "Skipped") => void;
+  editAutomation: "Automated" | "Human Review";
+  setEditAutomation: (val: "Automated" | "Human Review") => void;
+  onGoToReview: (checkId: string) => void;
   editDescription: string;
   setEditDescription: (val: string) => void;
   editExpected: string;
@@ -31,12 +36,17 @@ export default function QaCheckDrawer({
   onClose,
   editTitle,
   setEditTitle,
+  editPageName,
+  setEditPageName,
   editCategory,
   setEditCategory,
   editPriority,
   setEditPriority,
   editStatus,
   setEditStatus,
+  editAutomation,
+  setEditAutomation,
+  onGoToReview,
   editDescription,
   setEditDescription,
   editExpected,
@@ -96,6 +106,20 @@ export default function QaCheckDrawer({
               />
             </div>
 
+            {/* Page Name input */}
+            <div className="space-y-1">
+              <label className="text-[9px] font-bold uppercase tracking-wider text-text-muted font-mono">
+                Page Name
+              </label>
+              <input
+                type="text"
+                value={editPageName}
+                onChange={(e) => setEditPageName(e.target.value)}
+                placeholder="e.g. Landing Page, Global"
+                className="w-full bg-surface-container-low border border-outline rounded-lg text-xs font-semibold text-on-surface px-3 py-2 focus:outline-none focus:border-primary placeholder:text-text-muted placeholder:font-normal"
+              />
+            </div>
+
             {/* Category, Priority & Status Selector */}
             <div className="space-y-3">
               <div className="grid grid-cols-1 gap-2">
@@ -138,33 +162,78 @@ export default function QaCheckDrawer({
                   <label className="text-[9px] font-bold uppercase tracking-wider text-text-muted font-mono">
                     Status
                   </label>
-                  <select
-                    value={editStatus}
-                    onChange={(e) => setEditStatus(e.target.value as any)}
-                    className="w-full bg-surface-container-low border border-outline rounded-lg text-xs font-semibold px-2 py-1.5 text-on-surface cursor-pointer"
-                  >
-                    <option value="Not Started">Not Started</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Passed">Passed</option>
-                    <option value="Failed">Failed</option>
-                    <option value="Skipped">Skipped</option>
-                  </select>
+                  {editAutomation === "Human Review" ? (
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={`flex-1 text-xs font-semibold px-2 py-1.5 rounded-lg border border-outline bg-surface-container-low ${
+                          editStatus === "Passed"
+                            ? "text-emerald-400"
+                            : editStatus === "Failed"
+                            ? "text-magenta"
+                            : "text-on-surface-variant"
+                        }`}
+                      >
+                        {editStatus}
+                      </span>
+                    </div>
+                  ) : (
+                    <select
+                      value={editStatus}
+                      onChange={(e) => setEditStatus(e.target.value as any)}
+                      className="w-full bg-surface-container-low border border-outline rounded-lg text-xs font-semibold px-2 py-1.5 text-on-surface cursor-pointer"
+                    >
+                      <option value="Not Started">Not Started</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Passed">Passed</option>
+                      <option value="Failed">Failed</option>
+                      <option value="Skipped">Skipped</option>
+                    </select>
+                  )}
+                  {editAutomation === "Human Review" && (
+                    <p className="text-[9px] text-text-muted font-mono">
+                      Set from the linked Human Review — driven by its saved result.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Automation indicator */}
-            <div className="flex items-center gap-2 py-1.5 border-y border-outline-variant">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-text-muted font-mono">
-                Validation Mode:
-              </span>
-              <span className={`tag font-mono text-[9px] py-0.5 px-2 rounded ${
-                selectedCheck.automation === "Automated"
-                  ? "bg-cyan-dim text-primary border border-cyan/20"
-                  : "bg-yellow-dim text-yellow border border-yellow/20"
-              }`}>
-                {selectedCheck.automation}
-              </span>
+            {/* Validation Mode selector */}
+            <div className="flex items-center justify-between gap-2 py-1.5 border-y border-outline-variant">
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-text-muted font-mono">
+                  Validation Mode:
+                </span>
+                <select
+                  value={editAutomation}
+                  onChange={(e) => {
+                    const next = e.target.value as "Automated" | "Human Review";
+                    setEditAutomation(next);
+                    // Toggling mode changes what "Status" means going forward
+                    // (driven by a Human Review vs. manually set), so reset it
+                    // to a clean starting point rather than carrying over a
+                    // stale value from the previous mode.
+                    setEditStatus("Not Started");
+                  }}
+                  className={`tag font-mono text-[9px] py-0.5 px-2 rounded cursor-pointer border ${
+                    editAutomation === "Automated"
+                      ? "bg-cyan-dim text-primary border-cyan/20"
+                      : "bg-yellow-dim text-yellow border-yellow/20"
+                  }`}
+                >
+                  <option value="Automated">Automated</option>
+                  <option value="Human Review">Human Review</option>
+                </select>
+              </div>
+              {editAutomation === "Human Review" && selectedCheck && (
+                <button
+                  type="button"
+                  onClick={() => onGoToReview(selectedCheck.id)}
+                  className="text-[9px] font-bold uppercase tracking-wider text-primary hover:underline font-mono"
+                >
+                  Go to review →
+                </button>
+              )}
             </div>
 
             {/* Description & Expected Behavior inputs */}

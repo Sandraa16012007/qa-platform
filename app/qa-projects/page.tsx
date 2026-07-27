@@ -32,6 +32,13 @@ function ProjectsContent() {
   const updateProjectInStore = useProjectStore((state) => state.updateProject);
   const deleteProjectInStore = useProjectStore((state) => state.deleteProject);
   const createProjectInStore = useProjectStore((state) => state.createProject);
+  const loadProjects = useProjectStore((state) => state.loadProjects);
+  const isLoadingProjects = useProjectStore((state) => state.isLoading);
+  const isProjectsLoaded = useProjectStore((state) => state.isLoaded);
+
+  useEffect(() => {
+    loadProjects();
+  }, [loadProjects]);
 
   // Filters State
   const [searchQuery, setSearchQuery] = useState("");
@@ -117,7 +124,14 @@ function ProjectsContent() {
 
           {/* Projects Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {filteredProjects.length === 0 ? (
+            {isLoadingProjects && !isProjectsLoaded ? (
+              <div className="col-span-full neo-border bg-surface p-12 rounded-xl text-center space-y-3">
+                <RotateCw className="w-8 h-8 text-primary animate-spin mx-auto" />
+                <p className="font-mono text-xs text-on-surface-variant uppercase tracking-widest">
+                  Loading projects...
+                </p>
+              </div>
+            ) : filteredProjects.length === 0 ? (
               <div className="col-span-full neo-border bg-surface p-12 rounded-xl text-center space-y-3">
                 <AlertTriangle size={36} className="text-yellow mx-auto" />
                 <h3 className="text-base font-bold text-on-surface">No matching projects</h3>

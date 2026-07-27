@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, Suspense, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Globe,
@@ -63,6 +64,9 @@ function ProjectDashboardContent({ id }: { id: string }) {
   // Selected project (global project store — single source of truth)
   const projects = useProjectStore((state) => state.projects);
   const selectProjectInStore = useProjectStore((state) => state.selectProject);
+  const loadProjectsInStore = useProjectStore((state) => state.loadProjects);
+  const isProjectsLoading = useProjectStore((state) => state.isLoading);
+  const isProjectsLoaded = useProjectStore((state) => state.isLoaded);
   const project = useMemo(() => {
     return projects.find((p) => p.id === id) || projects[0];
   }, [projects, id]);
@@ -70,6 +74,28 @@ function ProjectDashboardContent({ id }: { id: string }) {
   useEffect(() => {
     selectProjectInStore(id);
   }, [id, selectProjectInStore]);
+
+  // Loads the project list from Supabase if it isn't already loaded — this
+  // page can be reached directly (URL, refresh, bookmark) without ever
+  // visiting /qa-projects first, so it can't rely on that page having
+  // already populated the store.
+  useEffect(() => {
+    loadProjectsInStore();
+  }, [loadProjectsInStore]);
+
+  // Load this project's QA Framework, Human Reviews, and AI Understanding
+  // from Supabase whenever the project id changes.
+  const loadChecks = useFrameworkStore((state) => state.loadChecks);
+  const loadReviews = useHumanReviewStore((state) => state.loadReviews);
+  const loadUnderstanding = useAiUnderstandingStore((state) => state.loadUnderstanding);
+  const isChecksLoading = useFrameworkStore((state) => state.isLoading);
+  const isReviewsLoading = useHumanReviewStore((state) => state.isLoading);
+
+  useEffect(() => {
+    loadChecks(id);
+    loadReviews(id);
+    loadUnderstanding(id);
+  }, [id, loadChecks, loadReviews, loadUnderstanding]);
 
   // Tab State (global UI store)
   const activeTab = useUiStore((state) => state.activeTab);
@@ -87,7 +113,10 @@ function ProjectDashboardContent({ id }: { id: string }) {
   const sidebarWidth = sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH;
 
   // Quality Score States
-  const [currentScore, setCurrentScore] = useState(project.qualityScore);
+  const [currentScore, setCurrentScore] = useState(project?.qualityScore ?? 0);
+  useEffect(() => {
+    if (project) setCurrentScore(project.qualityScore);
+  }, [project?.id]);
   const [scoreAnimation, setScoreAnimation] = useState(false);
 
   // AI Understanding / Project Summary (global store — shared with the New Project wizard)
@@ -97,7 +126,9 @@ function ProjectDashboardContent({ id }: { id: string }) {
   const setSummaryText = useAiUnderstandingStore((state) => state.updateSummary);
   const summaryText =
     summaryFromStore ||
-    `${project.name} is a high-performance ${project.type} optimized for user engagement. Features modular navigation structure, robust UI components, and integrated platform security.`;
+    (project
+      ? `${project.name} is a high-performance ${project.type} optimized for user engagement. Features modular navigation structure, robust UI components, and integrated platform security.`
+      : "");
 
 
   // Editable lists (global store — shared with the New Project wizard's AI Understanding step)
@@ -192,9 +223,11 @@ function ProjectDashboardContent({ id }: { id: string }) {
   }, [checks, selectedCheckId]);
 
   const [editTitle, setEditTitle] = useState("");
+  const [editPageName, setEditPageName] = useState("");
   const [editCategory, setEditCategory] = useState("");
   const [editPriority, setEditPriority] = useState<"Critical" | "High" | "Medium" | "Low">("Low");
   const [editStatus, setEditStatus] = useState<"Not Started" | "In Progress" | "Passed" | "Failed" | "Skipped">("Not Started");
+  const [editAutomation, setEditAutomation] = useState<"Automated" | "Human Review">("Automated");
   const [editDescription, setEditDescription] = useState("");
   const [editExpected, setEditExpected] = useState("");
   const [editNotes, setEditNotes] = useState("");
@@ -203,9 +236,11 @@ function ProjectDashboardContent({ id }: { id: string }) {
   useEffect(() => {
     if (selectedCheck) {
       setEditTitle(selectedCheck.title);
+      setEditPageName(selectedCheck.pageName || "");
       setEditCategory(selectedCheck.category);
       setEditPriority(selectedCheck.priority);
       setEditStatus(selectedCheck.status);
+      setEditAutomation(selectedCheck.automation);
       setEditDescription(selectedCheck.description);
       setEditExpected(selectedCheck.expectedBehavior);
       setEditNotes(selectedCheck.notes);
@@ -288,6 +323,7 @@ function ProjectDashboardContent({ id }: { id: string }) {
   // Human Reviews Tab State (global store)
   const humanReviews = useHumanReviewStore((state) => state.humanReviews);
   const setHumanReviews = useHumanReviewStore((state) => state.setHumanReviews);
+  const saveReviewResultInStore = useHumanReviewStore((state) => state.saveReviewResult);
 
   // Issues Tab & Page Notes State
   const [issues, setIssues] = useState<IssueItem[]>(initialIssues);
@@ -299,6 +335,20 @@ function ProjectDashboardContent({ id }: { id: string }) {
   };
 
   const handleNavigateToReview = (reviewId: string) => {
+    setActiveTab("Human Reviews");
+  };
+
+  // Jump from a QA Framework checklist item (in the drawer) to its linked
+  // Human Review entry.
+  const [targetReviewId, setTargetReviewId] = useState<string | null>(null);
+  const handleGoToReview = (checkId: string) => {
+    const linkedReview = humanReviews.find((r) => r.checkId === checkId);
+    if (!linkedReview) {
+      showToast("No linked human review found for this check yet.", "warning");
+      return;
+    }
+    setTargetReviewId(linkedReview.id);
+    setSelectedCheckId(null);
     setActiveTab("Human Reviews");
   };
 
@@ -427,7 +477,7 @@ function ProjectDashboardContent({ id }: { id: string }) {
         const newScore = failedCount === 0 ? 98 : Math.max(72, 94 - failedCount * 3);
         const finalStatus = failedCount > 5 ? "Failed" : "Completed";
 
-        const scoreDiff = newScore - project.qualityScore;
+        const scoreDiff = newScore - (project?.qualityScore ?? currentScore);
         const trendText = scoreDiff > 0 ? `↑ +${scoreDiff} Quality Score` : scoreDiff < 0 ? `↓ ${Math.abs(scoreDiff)} Quality Score` : "No Change";
         const trendType = scoreDiff > 0 ? "improvement" : scoreDiff < 0 ? "decline" : "neutral";
 
@@ -542,9 +592,11 @@ function ProjectDashboardContent({ id }: { id: string }) {
     if (!selectedCheckId) return;
     updateCheckInStore(selectedCheckId, {
       title: editTitle,
+      pageName: editPageName,
       category: editCategory,
       priority: editPriority,
       status: editStatus,
+      automation: editAutomation,
       description: editDescription,
       expectedBehavior: editExpected,
       notes: editNotes,
@@ -633,6 +685,52 @@ function ProjectDashboardContent({ id }: { id: string }) {
 
   const tabs = ["Overview", "QA Framework", "Test Runs", "Human Reviews", "Issues", "Reports"];
 
+  // Guard against direct navigation / refresh before the project list has
+  // finished loading from Supabase, and against a genuinely unknown id.
+  if (!project) {
+    if (isProjectsLoading || !isProjectsLoaded) {
+      return (
+        <div className="flex overflow-hidden bg-background text-foreground h-screen w-full">
+          <Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
+          <main
+            className="flex-grow h-screen overflow-y-auto bg-background"
+            style={{ marginLeft: sidebarWidth }}
+          >
+            <Header sidebarWidth={sidebarWidth} />
+            <div className="p-6 flex items-center justify-center h-[calc(100vh-64px)]">
+              <div className="flex flex-col items-center gap-3">
+                <RotateCw className="w-8 h-8 text-primary animate-spin" />
+                <p className="font-mono text-xs text-on-surface-variant uppercase tracking-widest">
+                  Loading project...
+                </p>
+              </div>
+            </div>
+          </main>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex overflow-hidden bg-background text-foreground h-screen w-full">
+        <Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
+        <main
+          className="flex-grow h-screen overflow-y-auto bg-background"
+          style={{ marginLeft: sidebarWidth }}
+        >
+          <Header sidebarWidth={sidebarWidth} />
+          <div className="p-6 flex flex-col items-center justify-center h-[calc(100vh-64px)] gap-3">
+            <p className="font-mono text-xs text-on-surface-variant uppercase tracking-widest">
+              Project not found.
+            </p>
+            <Link href="/qa-projects" className="text-primary text-xs font-semibold hover:underline">
+              ← Back to QA Projects
+            </Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex overflow-hidden w-full bg-background min-h-screen">
       {/* Sidebar Navigation */}
@@ -680,6 +778,14 @@ function ProjectDashboardContent({ id }: { id: string }) {
                 showToast={showToast}
               />
             ) : activeTab === "QA Framework" ? (
+              isChecksLoading && checks.length === 0 ? (
+                <div className="neo-border bg-surface rounded-xl p-16 flex flex-col items-center justify-center gap-3">
+                  <RotateCw className="w-6 h-6 text-primary animate-spin" />
+                  <p className="font-mono text-xs text-on-surface-variant uppercase tracking-widest">
+                    Loading QA framework...
+                  </p>
+                </div>
+              ) : (
               <QaFrameworkTab
                 levelProgress={levelProgress}
                 selectedLevel={selectedLevel}
@@ -703,6 +809,7 @@ function ProjectDashboardContent({ id }: { id: string }) {
                 getStatusBadgeClass={getStatusBadgeClass}
                 getPriorityBadgeClass={getPriorityBadgeClass}
               />
+              )
             ) : activeTab === "Test Runs" ? (
               <TestRunsTab
                 detailedRuns={detailedRuns}
@@ -732,11 +839,22 @@ function ProjectDashboardContent({ id }: { id: string }) {
                 showToast={showToast}
               />
             ) : activeTab === "Human Reviews" ? (
+              isReviewsLoading && humanReviews.length === 0 ? (
+                <div className="neo-border bg-surface rounded-xl p-16 flex flex-col items-center justify-center gap-3">
+                  <RotateCw className="w-6 h-6 text-primary animate-spin" />
+                  <p className="font-mono text-xs text-on-surface-variant uppercase tracking-widest">
+                    Loading human reviews...
+                  </p>
+                </div>
+              ) : (
               <HumanReviewsTab
                 humanReviews={humanReviews}
                 setHumanReviews={setHumanReviews}
+                onSaveReviewResult={saveReviewResultInStore}
+                initialSelectedReviewId={targetReviewId}
                 showToast={showToast}
               />
+              )
             ) : activeTab === "Issues" ? (
               <IssuesTab
                 issues={issues}
@@ -780,12 +898,17 @@ function ProjectDashboardContent({ id }: { id: string }) {
         onClose={() => setSelectedCheckId(null)}
         editTitle={editTitle}
         setEditTitle={setEditTitle}
+        editPageName={editPageName}
+        setEditPageName={setEditPageName}
         editCategory={editCategory}
         setEditCategory={setEditCategory}
         editPriority={editPriority}
         setEditPriority={setEditPriority}
         editStatus={editStatus}
         setEditStatus={setEditStatus}
+        editAutomation={editAutomation}
+        setEditAutomation={setEditAutomation}
+        onGoToReview={handleGoToReview}
         editDescription={editDescription}
         setEditDescription={setEditDescription}
         editExpected={editExpected}

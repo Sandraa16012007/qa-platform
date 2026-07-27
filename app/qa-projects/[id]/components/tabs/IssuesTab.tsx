@@ -80,20 +80,19 @@ export default function IssuesTab({
 
   // Toggle issue status
   const handleToggleResolve = (issueId: string) => {
+    const target = issues.find((item) => item.id === issueId);
+    if (!target) return;
+    const nextStatus = target.status === "Resolved" ? "Open" : "Resolved";
+
     setIssues((prev) =>
-      prev.map((item) => {
-        if (item.id === issueId) {
-          const nextStatus = item.status === "Resolved" ? "Open" : "Resolved";
-          showToast(
-            nextStatus === "Resolved"
-              ? `Marked "${item.title}" as resolved!`
-              : `Reopened issue "${item.title}"`,
-            nextStatus === "Resolved" ? "success" : "info"
-          );
-          return { ...item, status: nextStatus };
-        }
-        return item;
-      })
+      prev.map((item) => (item.id === issueId ? { ...item, status: nextStatus } : item))
+    );
+
+    showToast(
+      nextStatus === "Resolved"
+        ? `Marked "${target.title}" as resolved!`
+        : `Reopened issue "${target.title}"`,
+      nextStatus === "Resolved" ? "success" : "info"
     );
   };
 

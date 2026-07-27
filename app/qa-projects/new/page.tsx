@@ -87,6 +87,16 @@ export default function NewProjectWizard() {
   const [additionalInstructions, setAdditionalInstructions] = useState("");
 
   /* ── Step 3: AI Understanding (global store — shared with Project Overview tab) ── */
+  const clearAiUnderstandingProjectContext = useAiUnderstandingStore(
+    (state) => state.clearProjectContext
+  );
+  useEffect(() => {
+    // This store is shared with the Project Overview tab. Clearing the
+    // persistence target here ensures wizard edits (no saved project yet)
+    // never accidentally overwrite a previously-viewed project's saved data.
+    clearAiUnderstandingProjectContext();
+  }, [clearAiUnderstandingProjectContext]);
+
   const isAnalyzing = useAiUnderstandingStore((state) => state.isAnalyzing);
   const setIsAnalyzing = useAiUnderstandingStore((state) => state.setIsAnalyzing);
   const aiSummary = useAiUnderstandingStore((state) => state.summary);

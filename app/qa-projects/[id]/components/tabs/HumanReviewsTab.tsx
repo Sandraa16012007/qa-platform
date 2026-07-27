@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -26,12 +26,29 @@ interface HumanReviewsTabProps {
   humanReviews: HumanReviewItem[];
   setHumanReviews: React.Dispatch<React.SetStateAction<HumanReviewItem[]>>;
   showToast: (msg: string, type?: Toast["type"]) => void;
+  /**
+   * Persists a reviewer's save to Supabase (via useHumanReviewStore.saveReviewResult).
+   * Optional so this component still works standalone / in tests without it —
+   * falls back to the local-only setHumanReviews update if not provided.
+   */
+  onSaveReviewResult?: (
+    id: string,
+    checkId: string,
+    result: HumanReviewItem["reviewResult"],
+    rating: number,
+    notes: string,
+    screenshotUrl?: string | null
+  ) => void;
+  /** When set (e.g. navigated here from a QA Framework check's "Go to review" link), selects that review on mount/change. */
+  initialSelectedReviewId?: string | null;
 }
 
 export default function HumanReviewsTab({
   humanReviews,
   setHumanReviews,
   showToast,
+  onSaveReviewResult,
+  initialSelectedReviewId,
 }: HumanReviewsTabProps) {
   // Navigation & Hierarchy Selection State
   const [selectedLevelFilter, setSelectedLevelFilter] = useState<string>("All");
@@ -39,6 +56,12 @@ export default function HumanReviewsTab({
   const [selectedReviewId, setSelectedReviewId] = useState<string | null>(
     humanReviews[0]?.id || "hr-1"
   );
+
+  useEffect(() => {
+    if (initialSelectedReviewId) {
+      setSelectedReviewId(initialSelectedReviewId);
+    }
+  }, [initialSelectedReviewId]);
 
   // Filters State
   const [searchQuery, setSearchQuery] = useState("");
@@ -84,22 +107,28 @@ export default function HumanReviewsTab({
     if (formStatus === "Fail") computedStatus = "Failed";
     if (formStatus === "Not Applicable") computedStatus = "Not Applicable";
 
-    setHumanReviews((prev) =>
-      prev.map((item) =>
-        item.id === activeReview.id
-          ? {
-              ...item,
-              status: computedStatus,
-              reviewResult: formStatus,
-              rating: formRating,
-              notes: formNotes,
-              screenshotUrl: formScreenshot,
-              lastUpdated: "Just now",
-              reviewedBy: "Admin Engineer",
-            }
-          : item
-      )
-    );
+    if (onSaveReviewResult) {
+      // Store action handles the optimistic local update AND the Supabase
+      // write-through, so we don't also apply it here.
+      onSaveReviewResult(activeReview.id, activeReview.checkId, formStatus, formRating, formNotes, formScreenshot);
+    } else {
+      setHumanReviews((prev) =>
+        prev.map((item) =>
+          item.id === activeReview.id
+            ? {
+                ...item,
+                status: computedStatus,
+                reviewResult: formStatus,
+                rating: formRating,
+                notes: formNotes,
+                screenshotUrl: formScreenshot,
+                lastUpdated: "Just now",
+                reviewedBy: "Admin Engineer",
+              }
+            : item
+        )
+      );
+    }
 
     showToast(`Saved review for "${activeReview.title}"!`, "success");
   };
