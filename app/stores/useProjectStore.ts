@@ -41,9 +41,9 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         selectedProjectId: state.selectedProjectId || projects[0]?.id || null,
       }));
     } catch (err) {
-      console.error("loadProjects failed, falling back to mock data:", err);
+      console.error("loadProjects failed:", err);
       set({
-        projects: allProjectsList,
+        projects: [],
         isLoading: false,
         isLoaded: true,
         loadError: err instanceof Error ? err.message : "Failed to load projects",
@@ -146,8 +146,6 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     if (!state.selectedProjectId) return state.projects[0] || null;
     return (
       state.projects.find((p) => p.id === state.selectedProjectId) ||
-      projectDatabase[state.selectedProjectId] ||
-      state.projects[0] ||
       null
     );
   },

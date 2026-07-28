@@ -100,14 +100,6 @@ export default function ProjectHeader({
             <Play size={14} fill="currentColor" />
             Run QA
           </motion.button>
-
-          <button
-            onClick={() => showToast("Opening project configuration settings...", "info")}
-            className="bg-surface-container-low border border-outline hover:border-primary hover:text-primary transition-all text-on-surface-variant font-semibold py-2 px-3 text-xs uppercase tracking-widest flex items-center justify-center gap-1.5 rounded-lg cursor-pointer"
-          >
-            <Edit3 size={14} />
-            Edit Project
-          </button>
         </div>
       </div>
     </motion.div>

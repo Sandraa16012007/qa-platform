@@ -49,7 +49,6 @@ export interface QaCheck {
   automation: "Automated" | "Human Review";
   description: string;
   expectedBehavior: string;
-  acceptanceCriteria: string[];
   notes: string;
 }
 
@@ -86,7 +85,6 @@ export interface HumanReviewItem {
   automation: "Human Review";
   description: string;
   expectedBehavior: string;
-  acceptanceCriteria?: string[];
   notes: string;
   screenshotUrl?: string | null;
   lastUpdated?: string;

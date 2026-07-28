@@ -40,6 +40,17 @@ export interface DbAiUnderstanding {
   generated_at: string;
 }
 
+// ── page_notes ──
+
+export interface DbPageNote {
+  id: string;
+  project_id: string;
+  page_name: string;
+  author: string;
+  content: string;
+  created_at: string;
+}
+
 // ── qa_framework ──
 
 export interface DbQaFramework {
@@ -52,7 +63,6 @@ export interface DbQaFramework {
   title: string;
   description: string;
   expected_behavior: string;
-  acceptance_criteria: string[];
   automation_type: string;
   check_type: string;
   priority: string;
@@ -92,7 +102,6 @@ export interface DbHumanReviewJoined extends DbHumanReview {
     | "priority"
     | "description"
     | "expected_behavior"
-    | "acceptance_criteria"
     | "check_type"
   >;
 }
@@ -101,7 +110,7 @@ export interface DbHumanReviewJoined extends DbHumanReview {
 // Mappers: DB rows → Frontend types
 // ─────────────────────────────────────────────
 
-import type { Project, QaCheck, HumanReviewItem } from "../../types";
+import type { Project, QaCheck, HumanReviewItem, PageNote } from "../../types";
 import type { AiUnderstandingState } from "../../stores/useAiUnderstandingStore";
 
 /** Format an ISO timestamp into a human-friendly relative or date string. */
@@ -185,7 +194,6 @@ export function dbQaFrameworkToFrontend(row: DbQaFramework): QaCheck {
     automation: row.automation_type as QaCheck["automation"],
     description: row.description,
     expectedBehavior: row.expected_behavior,
-    acceptanceCriteria: row.acceptance_criteria ?? [],
     notes: row.notes,
   };
 }
@@ -204,7 +212,6 @@ export function frontendQaCheckToDb(
   if (check.automation !== undefined) mapped.automation_type = check.automation;
   if (check.description !== undefined) mapped.description = check.description;
   if (check.expectedBehavior !== undefined) mapped.expected_behavior = check.expectedBehavior;
-  if (check.acceptanceCriteria !== undefined) mapped.acceptance_criteria = check.acceptanceCriteria;
   if (check.notes !== undefined) mapped.notes = check.notes;
   return mapped as Partial<DbQaFramework>;
 }
@@ -224,11 +231,20 @@ export function dbHumanReviewToFrontend(row: DbHumanReviewJoined): HumanReviewIt
     automation: "Human Review",
     description: fw.description,
     expectedBehavior: fw.expected_behavior,
-    acceptanceCriteria: fw.acceptance_criteria ?? [],
     notes: row.notes,
     screenshotUrl: row.screenshot_url,
     lastUpdated: formatDate(row.reviewed_at),
     reviewedBy: row.reviewed_by ?? undefined,
+  };
+}
+
+export function dbPageNoteToFrontend(row: DbPageNote): PageNote {
+  return {
+    id: row.id,
+    pageName: row.page_name,
+    author: row.author,
+    date: formatDate(row.created_at),
+    content: row.content,
   };
 }
 

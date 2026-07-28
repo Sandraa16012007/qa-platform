@@ -158,7 +158,7 @@ export default function WorkflowSection() {
             style={{ fontSize: 24, lineHeight: 1.3 }}
             className="font-bold text-on-surface uppercase tracking-tight whitespace-nowrap"
           >
-            All Projects
+            Projects
           </h3>
           <div className="h-px flex-1 mx-4 bg-outline-variant" />
         </div>

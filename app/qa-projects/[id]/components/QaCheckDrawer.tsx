@@ -26,8 +26,6 @@ interface QaCheckDrawerProps {
   setEditExpected: (val: string) => void;
   editNotes: string;
   setEditNotes: (val: string) => void;
-  editCriteria: string[];
-  toggleSubItem: (idx: number) => void;
   handleSaveCheck: () => void;
 }
 
@@ -53,8 +51,6 @@ export default function QaCheckDrawer({
   setEditExpected,
   editNotes,
   setEditNotes,
-  editCriteria,
-  toggleSubItem,
   handleSaveCheck,
 }: QaCheckDrawerProps) {
   return (
@@ -209,10 +205,6 @@ export default function QaCheckDrawer({
                   onChange={(e) => {
                     const next = e.target.value as "Automated" | "Human Review";
                     setEditAutomation(next);
-                    // Toggling mode changes what "Status" means going forward
-                    // (driven by a Human Review vs. manually set), so reset it
-                    // to a clean starting point rather than carrying over a
-                    // stale value from the previous mode.
                     setEditStatus("Not Started");
                   }}
                   className={`tag font-mono text-[9px] py-0.5 px-2 rounded cursor-pointer border ${
@@ -260,37 +252,6 @@ export default function QaCheckDrawer({
                   rows={3}
                   className="w-full bg-surface-container-low border border-outline rounded-lg text-xs text-on-surface-variant p-2.5 focus:outline-none focus:border-primary resize-none"
                 />
-              </div>
-            </div>
-
-            {/* Acceptance Criteria */}
-            <div className="space-y-2">
-              <label className="text-[9px] font-bold uppercase tracking-wider text-text-muted font-mono block">
-                Acceptance Criteria
-              </label>
-              <div className="space-y-1.5">
-                {editCriteria.map((item, idx) => {
-                  const checked = item.startsWith("✓ ");
-                  const labelText = checked ? item.replace("✓ ", "") : item;
-                  return (
-                    <label
-                      key={labelText}
-                      className="flex items-center gap-2 cursor-pointer select-none text-[11px]"
-                    >
-                      <button
-                        onClick={() => toggleSubItem(idx)}
-                        className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${
-                          checked ? "bg-primary border-primary text-on-primary-container" : "border-outline text-transparent"
-                        }`}
-                      >
-                        {checked && <Check size={10} strokeWidth={3} />}
-                      </button>
-                      <span className={checked ? "text-on-surface line-through decoration-text-muted opacity-60" : "text-on-surface-variant"}>
-                        {labelText}
-                      </span>
-                    </label>
-                  );
-                })}
               </div>
             </div>
 

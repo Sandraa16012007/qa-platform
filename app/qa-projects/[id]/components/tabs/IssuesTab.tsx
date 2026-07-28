@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { IssueItem, PageNote, Toast } from "../../types";
 import FilterDropdown from "../FilterDropdown";
+import { Trash2, Check } from "lucide-react";
 
 interface IssuesTabProps {
   issues: IssueItem[];
@@ -25,6 +26,8 @@ interface IssuesTabProps {
   onNavigateToCheck: (checkId: string) => void;
   onNavigateToReview: (reviewId: string) => void;
   showToast: (msg: string, type?: Toast["type"]) => void;
+  onAddPageNote?: (note: { pageName: string; content: string }) => void;
+  onDeletePageNote?: (id: string) => void;
 }
 
 export default function IssuesTab({
@@ -35,6 +38,8 @@ export default function IssuesTab({
   onNavigateToCheck,
   onNavigateToReview,
   showToast,
+  onAddPageNote,
+  onDeletePageNote,
 }: IssuesTabProps) {
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(
     issues[0]?.id || "issue-1"
@@ -50,6 +55,37 @@ export default function IssuesTab({
   // New Page Note Form State
   const [newNotePage, setNewNotePage] = useState("General Page Note");
   const [newNoteContent, setNewNoteContent] = useState("");
+
+  const handleAddPageNote = () => {
+    if (!newNoteContent.trim()) return;
+    const pageName = newNotePage.trim() || "General Page Note";
+    const content = newNoteContent.trim();
+
+    if (onAddPageNote) {
+      onAddPageNote({ pageName, content });
+    } else {
+      const newNote: PageNote = {
+        id: `note-${Date.now()}`,
+        pageName,
+        author: "Admin Engineer",
+        date: "Just now",
+        content,
+      };
+      setPageNotes((prev) => [newNote, ...prev]);
+    }
+
+    setNewNoteContent("");
+    showToast(`Added page note for "${pageName}"`, "success");
+  };
+
+  const handleDeletePageNote = (id: string) => {
+    if (onDeletePageNote) {
+      onDeletePageNote(id);
+    } else {
+      setPageNotes((prev) => prev.filter((n) => n.id !== id));
+    }
+    showToast("Resolved page note", "info");
+  };
 
   // Selected Issue
   const activeIssue = useMemo(() => {
@@ -94,26 +130,6 @@ export default function IssuesTab({
         : `Reopened issue "${target.title}"`,
       nextStatus === "Resolved" ? "success" : "info"
     );
-  };
-
-  // Add new page note
-  const handleAddPageNote = () => {
-    if (!newNoteContent.trim()) {
-      showToast("Please enter page note observations", "warning");
-      return;
-    }
-
-    const newNote: PageNote = {
-      id: `note-${Date.now()}`,
-      pageName: newNotePage.trim() || "General Page Note",
-      author: "Admin Engineer",
-      date: "Just now",
-      content: newNoteContent.trim(),
-    };
-
-    setPageNotes((prev) => [newNote, ...prev]);
-    setNewNoteContent("");
-    showToast("Added page observation note!", "success");
   };
 
   // Badge Helpers
@@ -475,16 +491,26 @@ export default function IssuesTab({
             pageNotes.map((note) => (
               <div
                 key={note.id}
-                className="p-3.5 bg-surface-container-low rounded-lg border border-outline flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs"
+                className="p-3.5 bg-surface-container-low rounded-lg border border-outline flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs group"
               >
-                <div className="space-y-1">
+                <div className="space-y-1 flex-grow">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-primary font-mono">{note.pageName}</span>
                     <span className="text-[10px] text-text-muted font-mono">• {note.author}</span>
                   </div>
                   <p className="text-on-surface-variant">{note.content}</p>
                 </div>
-                <span className="text-[10px] text-text-muted font-mono shrink-0">{note.date}</span>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="text-[10px] text-text-muted font-mono">{note.date}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleDeletePageNote(note.id)}
+                    title="Resolve / Delete Page Note"
+                    className="p-1.5 text-text-muted hover:text-magenta hover:bg-magenta-dim/30 rounded transition-all cursor-pointer"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
             ))
           )}

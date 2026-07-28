@@ -21,7 +21,6 @@ import {
   GitBranch,
 } from "lucide-react";
 import { Project, TestRun, ActivityItem, Toast } from "../../types";
-import EditableTags from "../EditableTags";
 
 interface OverviewTabProps {
   project: Project;
@@ -225,39 +224,39 @@ export default function OverviewTab({
           <div className="neo-border bg-surface p-5 rounded-xl space-y-4">
             {/* Application Summary */}
             <div className="space-y-1 pb-3 border-b border-outline-variant">
-              <div className="flex justify-between items-center">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono">
-                  Application Summary
-                </label>
-                <button
-                  onClick={() => setIsEditingSummary(!isEditingSummary)}
-                  className="text-[10px] text-primary hover:underline uppercase font-bold cursor-pointer"
-                >
-                  {isEditingSummary ? "Save" : "Edit"}
-                </button>
-              </div>
-              {isEditingSummary ? (
-                <textarea
-                  value={summaryText}
-                  onChange={(e) => setSummaryText(e.target.value)}
-                  className="w-full bg-surface-container-low border border-outline rounded-lg text-sm text-on-surface px-3 py-2 focus:outline-none focus:border-primary resize-none mt-1"
-                  rows={3}
-                />
-              ) : (
-                <p className="text-xs text-on-surface-variant leading-relaxed">
-                  {summaryText}
-                </p>
-              )}
+              <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono block">
+                Application Summary
+              </label>
+              <p className="text-xs text-on-surface-variant leading-relaxed">
+                {summaryText}
+              </p>
             </div>
 
-            {/* Breakdown columns */}
+            {/* Read-only breakdown columns */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <EditableTags title="Detected Users" tags={users} onSave={setUsers} />
-              <EditableTags title="Detected Features" tags={features} onSave={setFeatures} />
-              <EditableTags title="Critical Workflows" tags={workflows} onSave={setWorkflows} />
-              <EditableTags title="Potential Risk Areas" tags={risks} onSave={setRisks} />
+              {[
+                { title: "Detected Users", tags: users },
+                { title: "Detected Features", tags: features },
+                { title: "Critical Workflows", tags: workflows },
+                { title: "Potential Risk Areas", tags: risks },
+              ].map((item) => (
+                <div key={item.title} className="space-y-1.5 p-3.5 bg-surface-container-low rounded-lg border border-outline">
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono">
+                    {item.title} ({item.tags.length})
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {item.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="text-xs bg-surface border border-outline px-2.5 py-1 rounded text-on-surface font-medium"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
-
           </div>
         </div>
 

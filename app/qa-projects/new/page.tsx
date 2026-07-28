@@ -16,6 +16,16 @@ import Step2Preferences from "./components/Step2Preferences";
 import Step3AiUnderstanding, { QA_COVERAGE_OPTIONS } from "./components/Step3AiUnderstanding";
 import Step4Generation, { GENERATION_STEPS } from "./components/Step4Generation";
 import { UploadedFile } from "./components/UploadCard";
+import { safeGenerateJSON } from "../../lib/gemini";
+
+interface AiUnderstandingGenResult {
+  summary: string;
+  detectedUsers: string[];
+  detectedFeatures: string[];
+  criticalWorkflows: string[];
+  riskAreas: string[];
+  qaCoverage: string[];
+}
 
 const STEP_LABELS = ["Project Basics", "Context", "QA Preferences", "AI Understanding"];
 
@@ -115,6 +125,11 @@ export default function NewProjectWizard() {
   const setIsEditingSummary = useAiUnderstandingStore((state) => state.setIsEditingSummary);
   const [aiReady, setAiReady] = useState(false);
 
+  /* ── Derived Framework Metrics ── */
+  const [estimatedChecks, setEstimatedChecks] = useState(450);
+  const [estimatedAutomation, setEstimatedAutomation] = useState(78);
+  const [estimatedHumanReview, setEstimatedHumanReview] = useState(22);
+
   // Seed default QA coverage selection once on mount
   useEffect(() => {
     if (qaCoverage.length === 0) {
@@ -176,48 +191,153 @@ export default function NewProjectWizard() {
     goWizardPrev();
   }, [goWizardPrev]);
 
-  /* ── Simulate AI analysis when entering step 3 ── */
+  /* ── Calculate Derived Metrics from Understanding & QA Depth ── */
+  const calculateDerivedMetrics = useCallback(
+    (
+      depth: "quick" | "balanced" | "comprehensive",
+      featuresCount: number,
+      workflowsCount: number,
+      autoPrefsCount: number,
+      humanCatsCount: number
+    ) => {
+      const multiplier = depth === "quick" ? 15 : depth === "comprehensive" ? 40 : 25;
+      const baseCount = (featuresCount || 6) + (workflowsCount || 4);
+      const checks = Math.round((baseCount * multiplier) / 10) * 10;
+
+      const depthAutoBase = depth === "quick" ? 85 : depth === "comprehensive" ? 65 : 75;
+      const autoTotal = autoPrefsCount + humanCatsCount || 1;
+      const autoRatio = Math.round((autoPrefsCount / autoTotal) * 100);
+      const autoPct = Math.min(90, Math.max(50, Math.round((depthAutoBase + autoRatio) / 2)));
+      const humanPct = 100 - autoPct;
+
+      setEstimatedChecks(checks);
+      setEstimatedAutomation(autoPct);
+      setEstimatedHumanReview(humanPct);
+    },
+    []
+  );
+
+  /* ── Generate AI Product Understanding via Gemini ── */
   useEffect(() => {
     if (currentStep === 3 && !aiReady) {
-      setIsAnalyzing(true);
-      const name = projectName || "Application";
-      const dom = domain || "Platform";
-      const timer = setTimeout(() => {
-        setAiSummary(
-          `${name} is a ${dom.toLowerCase()} platform where users interact with core features, discover content, and build engagement. Based on the ${productType.toLowerCase() || "application"} architecture, the product focuses on delivering a seamless experience.`
-        );
-        setDetectedUsers(["End Users", "Administrators", "Power Users", "Visitors"]);
-        setDetectedFeatures([
-          "Authentication",
-          "Dashboard",
-          "Content Management",
-          "Search & Filter",
-          "Notifications",
-          "User Profiles",
-          "Settings",
-          "Analytics",
-        ]);
-        setCriticalWorkflows([
-          "User Registration",
-          "Core Feature Usage",
-          "Content Creation",
-          "Navigation Flow",
-          "Profile Management",
-          "Search & Discovery",
-        ]);
-        setRiskAreas([
-          "Media Upload Reliability",
-          "Search Accuracy",
-          "Mobile Responsiveness",
-          "Accessibility",
-          "Large Content Rendering",
-        ]);
-        setIsAnalyzing(false);
+      let isCancelled = false;
+
+      const runAiAnalysis = async () => {
+        setIsAnalyzing(true);
+
+        const prompt = `
+Analyze the following product parameters to generate a structured QA Product Understanding JSON.
+
+Product Context:
+- Project Name: ${projectName || "Unnamed Application"}
+- Product Type: ${productType || "Web Application"}
+- Domain: ${domain || "Software Service"}
+- Description: ${description || "Application for digital users"}
+- QA Depth: ${qaDepth}
+- Quality Priorities: ${qualityPriorities.join(", ") || "General Quality"}
+- Automation Preferences: ${automationPrefs.join(", ") || "Automated testing"}
+- Human Review Preferences: ${humanReviewCats.join(", ") || "Usability"}
+- Additional Instructions: ${additionalInstructions || "None"}
+
+Return a single strict JSON object matching this structure:
+{
+  "summary": "Concise 2-3 sentence overview of application and QA strategy focus",
+  "detectedUsers": ["List of 3-5 target user roles"],
+  "detectedFeatures": ["List of 6-8 core product features"],
+  "criticalWorkflows": ["List of 4-6 critical user workflows"],
+  "riskAreas": ["List of 4-5 high-priority technical/functional risk areas"],
+  "qaCoverage": ["3-6 recommended coverage items chosen from: Product QA (High-level architecture & brand), Page QA (Per-page layout, specs & responsive), Component QA (Design system tokens & states), Feature QA (User workflows & state trees), Accessibility QA (WCAG 2.1 AA compliance), UX & Content QA (Tone, microcopy & usability)"]
+}
+`;
+
+        const res = await safeGenerateJSON<AiUnderstandingGenResult>({
+          prompt,
+          systemInstruction:
+            "You are a Senior Quality Architect. Produce concise, highly accurate product QA analysis in strict JSON only.",
+          setLoading: setIsAnalyzing,
+          temperature: 0.2,
+        });
+
+        if (isCancelled) return;
+
+        if (res.success && res.data) {
+          const d = res.data;
+          setAiSummary(d.summary || `${projectName || "Application"} QA Analysis.`);
+          setDetectedUsers(d.detectedUsers || ["End Users", "Administrators"]);
+          setDetectedFeatures(d.detectedFeatures || ["Authentication", "Dashboard"]);
+          setCriticalWorkflows(d.criticalWorkflows || ["User Registration", "Core Flow"]);
+          setRiskAreas(d.riskAreas || ["Data Reliability", "Performance"]);
+          if (d.qaCoverage && d.qaCoverage.length > 0) {
+            setQaCoverage(d.qaCoverage);
+          }
+
+          calculateDerivedMetrics(
+            qaDepth,
+            d.detectedFeatures?.length || 6,
+            d.criticalWorkflows?.length || 4,
+            automationPrefs.length,
+            humanReviewCats.length
+          );
+        } else {
+          showToast(res.error || "Gemini API error. Falling back to default analysis.", "warning");
+          setAiSummary(
+            `${projectName || "Application"} is a ${domain.toLowerCase() || "digital"} product (${productType.toLowerCase() || "web app"}). Focuses on delivering reliable workflows and seamless user experience.`
+          );
+          setDetectedUsers(["End Users", "Administrators", "Power Users", "Visitors"]);
+          setDetectedFeatures([
+            "Authentication",
+            "Dashboard",
+            "Content Management",
+            "Search & Filter",
+            "Notifications",
+            "Settings",
+          ]);
+          setCriticalWorkflows([
+            "User Registration",
+            "Core Feature Usage",
+            "Content Creation",
+            "Navigation Flow",
+          ]);
+          setRiskAreas([
+            "Media Upload Reliability",
+            "Mobile Responsiveness",
+            "Accessibility",
+            "Data Validation",
+          ]);
+          calculateDerivedMetrics(qaDepth, 6, 4, automationPrefs.length, humanReviewCats.length);
+        }
+
         setAiReady(true);
-      }, 1800);
-      return () => clearTimeout(timer);
+      };
+
+      runAiAnalysis();
+
+      return () => {
+        isCancelled = true;
+      };
     }
-  }, [currentStep, aiReady, projectName, domain, productType]);
+  }, [
+    currentStep,
+    aiReady,
+    projectName,
+    domain,
+    productType,
+    description,
+    qaDepth,
+    qualityPriorities,
+    automationPrefs,
+    humanReviewCats,
+    additionalInstructions,
+    setIsAnalyzing,
+    setAiSummary,
+    setDetectedUsers,
+    setDetectedFeatures,
+    setCriticalWorkflows,
+    setRiskAreas,
+    setQaCoverage,
+    calculateDerivedMetrics,
+    showToast,
+  ]);
 
   /* ── Generation timeline ── */
   useEffect(() => {
@@ -456,6 +576,9 @@ export default function NewProjectWizard() {
                     setRiskAreas={setRiskAreas}
                     qaCoverage={qaCoverage}
                     setQaCoverage={setQaCoverage}
+                    estimatedChecks={estimatedChecks}
+                    estimatedAutomation={estimatedAutomation}
+                    estimatedHumanReview={estimatedHumanReview}
                     goPrev={goPrev}
                     handleGenerate={handleGenerate}
                   />

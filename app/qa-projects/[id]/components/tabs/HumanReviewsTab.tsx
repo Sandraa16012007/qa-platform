@@ -19,18 +19,13 @@ import {
   Sparkles,
   Check,
 } from "lucide-react";
-import { HumanReviewItem, Toast } from "../../types";
+import { HumanReviewItem, IssueItem, Toast } from "../../types";
 import FilterDropdown from "../FilterDropdown";
 
 interface HumanReviewsTabProps {
   humanReviews: HumanReviewItem[];
   setHumanReviews: React.Dispatch<React.SetStateAction<HumanReviewItem[]>>;
   showToast: (msg: string, type?: Toast["type"]) => void;
-  /**
-   * Persists a reviewer's save to Supabase (via useHumanReviewStore.saveReviewResult).
-   * Optional so this component still works standalone / in tests without it —
-   * falls back to the local-only setHumanReviews update if not provided.
-   */
   onSaveReviewResult?: (
     id: string,
     checkId: string,
@@ -39,8 +34,9 @@ interface HumanReviewsTabProps {
     notes: string,
     screenshotUrl?: string | null
   ) => void;
-  /** When set (e.g. navigated here from a QA Framework check's "Go to review" link), selects that review on mount/change. */
   initialSelectedReviewId?: string | null;
+  onNavigateToCheck?: (checkId: string) => void;
+  setIssues?: React.Dispatch<React.SetStateAction<IssueItem[]>>;
 }
 
 export default function HumanReviewsTab({
@@ -49,12 +45,14 @@ export default function HumanReviewsTab({
   showToast,
   onSaveReviewResult,
   initialSelectedReviewId,
+  onNavigateToCheck,
+  setIssues,
 }: HumanReviewsTabProps) {
   // Navigation & Hierarchy Selection State
   const [selectedLevelFilter, setSelectedLevelFilter] = useState<string>("All");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("All");
   const [selectedReviewId, setSelectedReviewId] = useState<string | null>(
-    humanReviews[0]?.id || "hr-1"
+    humanReviews[0]?.id || null
   );
 
   useEffect(() => {
@@ -81,36 +79,45 @@ export default function HumanReviewsTab({
     return humanReviews.find((r) => r.id === selectedReviewId) || humanReviews[0] || null;
   }, [humanReviews, selectedReviewId]);
 
-  // Form State for Active Review
+  // Form State for Active Review — default to null (N/A) and 0 stars for unreviewed items
   const [formStatus, setFormStatus] = useState<
-    "Pass" | "Needs Improvement" | "Fail" | "Not Applicable"
-  >("Pass");
-  const [formRating, setFormRating] = useState<number>(4);
+    "Pass" | "Needs Improvement" | "Fail" | "Not Applicable" | null
+  >(null);
+  const [formRating, setFormRating] = useState<number>(0);
   const [formNotes, setFormNotes] = useState<string>("");
   const [formScreenshot, setFormScreenshot] = useState<string | null>(null);
 
   // Sync form state when active review changes
   const handleSelectReview = (item: HumanReviewItem) => {
     setSelectedReviewId(item.id);
-    setFormStatus(item.reviewResult || (item.status === "Completed" ? "Pass" : "Pass"));
-    setFormRating(item.rating || 4);
+    setFormStatus((item.reviewResult as any) || null);
+    setFormRating(item.rating || 0);
     setFormNotes(item.notes || "");
     setFormScreenshot(item.screenshotUrl || null);
   };
 
+  // Sync initial review when activeReview mounts or changes
+  useEffect(() => {
+    if (activeReview) {
+      setFormStatus((activeReview.reviewResult as any) || null);
+      setFormRating(activeReview.rating || 0);
+      setFormNotes(activeReview.notes || "");
+      setFormScreenshot(activeReview.screenshotUrl || null);
+    }
+  }, [activeReview?.id]);
+
   // Save active review
   const handleSaveReview = () => {
     if (!activeReview) return;
+    const saveResult = formStatus || "Pass";
 
     let computedStatus: HumanReviewItem["status"] = "Completed";
-    if (formStatus === "Needs Improvement") computedStatus = "Needs Improvement";
-    if (formStatus === "Fail") computedStatus = "Failed";
-    if (formStatus === "Not Applicable") computedStatus = "Not Applicable";
+    if (saveResult === "Needs Improvement") computedStatus = "Needs Improvement";
+    if (saveResult === "Fail") computedStatus = "Failed";
+    if (saveResult === "Not Applicable") computedStatus = "Not Applicable";
 
     if (onSaveReviewResult) {
-      // Store action handles the optimistic local update AND the Supabase
-      // write-through, so we don't also apply it here.
-      onSaveReviewResult(activeReview.id, activeReview.checkId, formStatus, formRating, formNotes, formScreenshot);
+      onSaveReviewResult(activeReview.id, activeReview.checkId, saveResult, formRating, formNotes, formScreenshot);
     } else {
       setHumanReviews((prev) =>
         prev.map((item) =>
@@ -118,7 +125,7 @@ export default function HumanReviewsTab({
             ? {
                 ...item,
                 status: computedStatus,
-                reviewResult: formStatus,
+                reviewResult: saveResult,
                 rating: formRating,
                 notes: formNotes,
                 screenshotUrl: formScreenshot,
@@ -148,7 +155,26 @@ export default function HumanReviewsTab({
   // Create issue from review item
   const handleCreateIssue = () => {
     if (!activeReview) return;
-    showToast(`Created issue for "${activeReview.title}"`, "warning");
+    const newIssue: IssueItem = {
+      id: `issue-${Date.now()}`,
+      title: `Review Finding: ${activeReview.title}`,
+      severity: activeReview.priority,
+      status: "Open",
+      source: "Human Review",
+      level: activeReview.level,
+      linkedPage: activeReview.category || "General",
+      assignedTo: "Admin Engineer",
+      description: formNotes || activeReview.notes || activeReview.description,
+      recommendation: `Address human review feedback for ${activeReview.title}`,
+      createdDate: "Just now",
+      linkedCheckId: activeReview.checkId,
+      linkedReviewId: activeReview.id,
+    };
+
+    if (setIssues) {
+      setIssues((prev) => [newIssue, ...prev]);
+    }
+    showToast(`Created issue for "${activeReview.title}"!`, "warning");
   };
 
   // Hierarchy tree calculation
@@ -537,9 +563,21 @@ export default function HumanReviewsTab({
                   <span className="text-[9px] font-mono font-bold uppercase bg-cyan-dim border border-cyan/20 text-primary px-2 py-0.5 rounded">
                     {activeReview.level}
                   </span>
-                  <span className={`tag font-mono text-[9px] ${getPriorityBadgeClass(activeReview.priority)}`}>
-                    {activeReview.priority} Priority
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`tag font-mono text-[9px] ${getPriorityBadgeClass(activeReview.priority)}`}>
+                      {activeReview.priority} Priority
+                    </span>
+                    {onNavigateToCheck && activeReview.checkId && (
+                      <button
+                        type="button"
+                        onClick={() => onNavigateToCheck(activeReview.checkId)}
+                        className="text-[10px] font-mono text-primary hover:underline flex items-center gap-1 cursor-pointer font-bold bg-primary/10 px-2 py-0.5 rounded border border-primary/20"
+                      >
+                        <span>View QA Check</span>
+                        <ArrowRight size={10} />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <h3 className="text-sm font-bold text-on-surface leading-snug">
                   {activeReview.title}
@@ -600,7 +638,7 @@ export default function HumanReviewsTab({
                       Confidence Rating
                     </label>
                     <span className="text-xs font-mono font-bold text-primary">
-                      {formRating} / 5 Stars
+                      {formRating > 0 ? `${formRating} / 5 Stars` : "N/A"}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 p-2.5 bg-surface-container-low border border-outline rounded-lg justify-center">

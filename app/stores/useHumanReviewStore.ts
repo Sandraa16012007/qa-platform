@@ -49,8 +49,8 @@ export const useHumanReviewStore = create<HumanReviewStore>((set, get) => ({
       const humanReviews = await humanReviewsService.fetchHumanReviews(projectId);
       set({ humanReviews, isLoading: false });
     } catch (err) {
-      console.error("loadReviews failed, falling back to mock data:", err);
-      set({ humanReviews: initialHumanReviews, isLoading: false });
+      console.error("loadReviews failed:", err);
+      set({ humanReviews: [], isLoading: false });
     }
   },
 
@@ -136,5 +136,5 @@ export const useHumanReviewStore = create<HumanReviewStore>((set, get) => ({
           : value,
     })),
 
-  resetReviews: () => set({ humanReviews: initialHumanReviews, selectedReviewId: null }),
+  resetReviews: () => set({ humanReviews: [], selectedReviewId: null }),
 }));

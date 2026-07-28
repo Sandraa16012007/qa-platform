@@ -159,7 +159,6 @@ export const initialQaChecks: QaCheck[] = [
     automation: "Human Review",
     description: "Verify primary and secondary navigation flows match mental models.",
     expectedBehavior: "All primary pages reachable within 2 clicks from global header.",
-    acceptanceCriteria: ["Header links active state highlights", "Breadcrumbs render correctly", "Mobile drawer opens under 200ms"],
     notes: "Tested on Chrome and Mobile Safari.",
   },
   {
@@ -173,7 +172,6 @@ export const initialQaChecks: QaCheck[] = [
     automation: "Automated",
     description: "Validate color system tokens adhere strictly to dark cyan design system.",
     expectedBehavior: "No hex color values outside approved CSS custom variables palette.",
-    acceptanceCriteria: ["Background uses --color-background", "Primary accent uses --color-primary", "Border tokens match --color-outline"],
     notes: "Verified via CSS token linter.",
   },
   {
@@ -187,7 +185,6 @@ export const initialQaChecks: QaCheck[] = [
     automation: "Automated",
     description: "Verify text and interactive element contrast ratios meet minimum 4.5:1 ratio.",
     expectedBehavior: "All text elements satisfy WCAG AA contrast rules.",
-    acceptanceCriteria: ["Primary text contrast >= 4.5:1", "Secondary text contrast >= 3:1", "Focus outline visible"],
     notes: "Footer link contrast requires minor token adjustment.",
   },
   {
@@ -201,7 +198,6 @@ export const initialQaChecks: QaCheck[] = [
     automation: "Automated",
     description: "Verify Hero text scaling, CTAs stack gracefully on mobile screens.",
     expectedBehavior: "Hero section adapts smoothly from 1920px down to 360px without horizontal overflow.",
-    acceptanceCriteria: ["No horizontal overflow", "Buttons stack on < 640px", "Heading resizes smoothly"],
     notes: "Tested across Breakpoint matrix.",
   },
   {
@@ -215,7 +211,6 @@ export const initialQaChecks: QaCheck[] = [
     automation: "Automated",
     description: "Verify metric cards calculate and animate percentages under 300ms.",
     expectedBehavior: "Metrics compute without blocking UI main thread.",
-    acceptanceCriteria: ["Cards render under 300ms", "SVG dials animate smoothly"],
     notes: "Performance benchmark verified.",
   },
   {
@@ -229,7 +224,6 @@ export const initialQaChecks: QaCheck[] = [
     automation: "Human Review",
     description: "Verify sidebar collapses to 64px and expands to 260px smoothly.",
     expectedBehavior: "Smooth 200ms spring transition without layout shift.",
-    acceptanceCriteria: ["Collapse state persists in localStorage", "Tooltips display when collapsed"],
     notes: "Smooth interaction approved.",
   },
   {
@@ -243,7 +237,6 @@ export const initialQaChecks: QaCheck[] = [
     automation: "Automated",
     description: "Muted gray text on dark background fails 4.5:1 WCAG AA contrast ratio.",
     expectedBehavior: "Text contrast ratio should be at least 4.5:1.",
-    acceptanceCriteria: ["Fix text color token in footer"],
     notes: "Logged issue-1.",
   },
   {
@@ -257,7 +250,6 @@ export const initialQaChecks: QaCheck[] = [
     automation: "Automated",
     description: "Verify inputs highlight cyan focus ring when focused.",
     expectedBehavior: "Visible cyan outline appears on keyboard focus.",
-    acceptanceCriteria: ["Focus ring visible"],
     notes: "Issue-5 resolved.",
   },
 ];
@@ -387,20 +379,6 @@ export const initialIssues: IssueItem[] = [
     recommendation: "Increase contrast by shifting text color token to --color-on-surface-variant (#A1A7B8).",
     createdDate: "Jul 21, 2026",
     linkedCheckId: "check-7",
-  },
-  {
-    id: "issue-2",
-    title: "Form validation error messages lack clear recovery steps",
-    severity: "High",
-    status: "In Progress",
-    source: "Human Review",
-    level: "Page QA",
-    linkedPage: "/qa-projects/new",
-    assignedTo: "Alex Rivera",
-    description: "Input fields fail validation with vague error strings without stating protocol format requirements.",
-    recommendation: "Update validation text to explicitly specify URL protocol requirements (e.g., 'https://').",
-    createdDate: "Jul 22, 2026",
-    linkedReviewId: "hr-3",
   },
 ];
 

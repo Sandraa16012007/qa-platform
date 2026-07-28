@@ -3,12 +3,12 @@ import { dbHumanReviewToFrontend, DbHumanReviewJoined } from "../supabase/types"
 import type { HumanReviewItem, QaCheck } from "../../types";
 
 const JOINED_SELECT =
-  "*, qa_framework(title, qa_level, category, priority, description, expected_behavior, acceptance_criteria, check_type)";
+  "*, qa_framework(title, qa_level, category, priority, description, expected_behavior, check_type)";
 // `!inner` makes PostgREST treat qa_framework as an inner join so the
 // `.eq("qa_framework.project_id", ...)` filter below actually restricts rows,
 // instead of just nulling out the embedded resource on non-matches.
 const JOINED_SELECT_FILTERABLE =
-  "*, qa_framework!inner(title, qa_level, category, priority, description, expected_behavior, acceptance_criteria, check_type, project_id)";
+  "*, qa_framework!inner(title, qa_level, category, priority, description, expected_behavior, check_type, project_id)";
 
 // Statuses that count as "reviewed" (a final result has been recorded) for
 // completion-percentage purposes. "Needs Review" and "In Progress" do not.

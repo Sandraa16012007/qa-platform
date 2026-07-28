@@ -29,6 +29,9 @@ interface Step3AiUnderstandingProps {
   setRiskAreas: (items: string[]) => void;
   qaCoverage: string[];
   setQaCoverage: React.Dispatch<React.SetStateAction<string[]>>;
+  estimatedChecks?: number;
+  estimatedAutomation?: number;
+  estimatedHumanReview?: number;
   goPrev: () => void;
   handleGenerate: () => void;
 }
@@ -49,6 +52,9 @@ export default function Step3AiUnderstanding({
   setRiskAreas,
   qaCoverage,
   setQaCoverage,
+  estimatedChecks = 450,
+  estimatedAutomation = 78,
+  estimatedHumanReview = 22,
   goPrev,
   handleGenerate,
 }: Step3AiUnderstandingProps) {
@@ -212,9 +218,9 @@ export default function Step3AiUnderstanding({
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { label: "QA Checks", value: "~450", icon: Activity },
-                { label: "Automation", value: "~78%", icon: Zap },
-                { label: "Human Review", value: "~22%", icon: Eye },
+                { label: "QA Checks", value: `~${estimatedChecks}`, icon: Activity },
+                { label: "Automation", value: `~${estimatedAutomation}%`, icon: Zap },
+                { label: "Human Review", value: `~${estimatedHumanReview}%`, icon: Eye },
                 { label: "Generation Time", value: "~30s", icon: RotateCw },
               ].map((m) => {
                 const MIcon = m.icon;

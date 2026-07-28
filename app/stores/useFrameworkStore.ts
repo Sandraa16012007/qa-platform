@@ -57,8 +57,8 @@ export const useFrameworkStore = create<FrameworkStore>((set, get) => ({
       const checks = await qaFrameworkService.fetchQaFramework(projectId);
       set({ checks, isLoading: false });
     } catch (err) {
-      console.error("loadChecks failed, falling back to mock data:", err);
-      set({ checks: initialQaChecks, isLoading: false });
+      console.error("loadChecks failed:", err);
+      set({ checks: [], isLoading: false });
     }
   },
 

@@ -7,14 +7,6 @@ import { useProjectStore } from "../stores/useProjectStore";
 
 export default function RecentProjects() {
   const projects = useProjectStore((state) => state.projects);
-  const recentProject = projects[0] || {
-    id: "1",
-    name: "CreativeHub",
-    qualityScore: 87,
-    status: "Stable",
-    lastUpdated: "2h ago",
-    frameworkChecksCount: 1242,
-  };
 
   return (
     <motion.section
@@ -25,76 +17,77 @@ export default function RecentProjects() {
     >
       {/* Project cards grid — 3 columns */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {/* Project Card 1 */}
-        <Link href={`/qa-projects/${recentProject.id}`} className="block">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.35 }}
-            className="neo-border bg-surface p-6 space-y-4 group hover:border-primary transition-all cursor-pointer rounded-xl h-full flex flex-col justify-between"
-          >
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <h4
-                  style={{ fontSize: 24, lineHeight: 1.3 }}
-                  className="font-bold text-on-surface"
-                >
-                  {recentProject.name}
-                </h4>
-                <div className="flex items-center gap-2">
-                  <div
-                    style={{ fontSize: 10 }}
-                    className="px-2 py-0.5 bg-surface-container-high border border-outline text-primary font-mono uppercase rounded"
+        {projects.map((project, idx) => (
+          <Link key={project.id} href={`/qa-projects/${project.id}`} className="block">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.3 + idx * 0.1 }}
+              className="neo-border bg-surface p-6 space-y-4 group hover:border-primary transition-all cursor-pointer rounded-xl h-full flex flex-col justify-between"
+            >
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <h4
+                    style={{ fontSize: 24, lineHeight: 1.3 }}
+                    className="font-bold text-on-surface"
                   >
-                    {recentProject.status}
+                    {project.name}
+                  </h4>
+                  <div className="flex items-center gap-2">
+                    <div
+                      style={{ fontSize: 10 }}
+                      className="px-2 py-0.5 bg-surface-container-high border border-outline text-primary font-mono uppercase rounded"
+                    >
+                      {project.status}
+                    </div>
+                    <span
+                      style={{ fontSize: 12 }}
+                      className="text-on-surface-variant uppercase"
+                    >
+                      Updated {project.lastUpdated}
+                    </span>
                   </div>
-                  <span
-                    style={{ fontSize: 12 }}
-                    className="text-on-surface-variant uppercase"
+                </div>
+                <div className="text-right">
+                  <div style={{ fontSize: 32 }} className="font-bold text-primary">
+                    {project.qualityScore}%
+                  </div>
+                  <div
+                    style={{ fontSize: 10, letterSpacing: "-0.04em" }}
+                    className="font-semibold text-on-surface-variant uppercase"
                   >
-                    Updated {recentProject.lastUpdated}
-                  </span>
+                    Avg Score
+                  </div>
                 </div>
               </div>
-              <div className="text-right">
-                <div style={{ fontSize: 32 }} className="font-bold text-primary">
-                  {recentProject.qualityScore}%
+
+              {/* Progress bar */}
+              <div className="h-1 bg-surface-container-high w-full rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${project.qualityScore}%` }}
+                  transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
+                  className="h-full bg-primary"
+                />
+              </div>
+
+              {/* Footer */}
+              <div className="flex justify-between items-center text-on-surface-variant">
+                <div className="flex items-center gap-1">
+                  <CheckCircle2 size={16} strokeWidth={1.5} />
+                  <span className="font-mono text-sm">{project.frameworkChecksCount || 35} Tests</span>
                 </div>
                 <div
-                  style={{ fontSize: 10, letterSpacing: "-0.04em" }}
-                  className="font-semibold text-on-surface-variant uppercase"
+                  style={{ fontSize: 10 }}
+                  className="bg-primary/10 group-hover:bg-primary text-primary group-hover:text-on-primary-container px-2 py-1.5 uppercase font-bold tracking-widest rounded transition-all flex items-center gap-1 cursor-pointer"
                 >
-                  Avg Score
+                  View Project{" "}
+                  <ArrowRight size={14} strokeWidth={2} />
                 </div>
               </div>
-            </div>
-
-            {/* Progress bar */}
-            <div className="h-1 bg-surface-container-high w-full rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${recentProject.qualityScore}%` }}
-                transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
-                className="h-full bg-primary"
-              />
-            </div>
-
-            {/* Footer */}
-            <div className="flex justify-between items-center text-on-surface-variant">
-              <div className="flex items-center gap-1">
-                <CheckCircle2 size={16} strokeWidth={1.5} />
-                <span className="font-mono text-sm">{recentProject.frameworkChecksCount || 1242} Tests</span>
-              </div>
-              <div
-                style={{ fontSize: 10 }}
-                className="bg-primary/10 group-hover:bg-primary text-primary group-hover:text-on-primary-container px-2 py-1.5 uppercase font-bold tracking-widest rounded transition-all flex items-center gap-1 cursor-pointer"
-              >
-                View Project{" "}
-                <ArrowRight size={14} strokeWidth={2} />
-              </div>
-            </div>
-          </motion.div>
-        </Link>
+            </motion.div>
+          </Link>
+        ))}
 
         {/* Create New Project — dashed card */}
         <Link href="/qa-projects/new" className="block">

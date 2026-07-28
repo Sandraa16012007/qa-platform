@@ -231,7 +231,6 @@ function ProjectDashboardContent({ id }: { id: string }) {
   const [editDescription, setEditDescription] = useState("");
   const [editExpected, setEditExpected] = useState("");
   const [editNotes, setEditNotes] = useState("");
-  const [editCriteria, setEditCriteria] = useState<string[]>([]);
 
   useEffect(() => {
     if (selectedCheck) {
@@ -244,7 +243,6 @@ function ProjectDashboardContent({ id }: { id: string }) {
       setEditDescription(selectedCheck.description);
       setEditExpected(selectedCheck.expectedBehavior);
       setEditNotes(selectedCheck.notes);
-      setEditCriteria([...selectedCheck.acceptanceCriteria]);
     }
   }, [selectedCheck]);
 
@@ -600,15 +598,8 @@ function ProjectDashboardContent({ id }: { id: string }) {
       description: editDescription,
       expectedBehavior: editExpected,
       notes: editNotes,
-      acceptanceCriteria: editCriteria,
     });
     showToast("QA Check details updated successfully!", "success");
-  };
-
-  const toggleSubItem = (idx: number) => {
-    setEditCriteria((prev) =>
-      prev.map((c, i) => (i === idx ? (c.startsWith("✓ ") ? c.replace("✓ ", "") : `✓ ${c}`) : c))
-    );
   };
 
   // Badge Helpers
@@ -853,6 +844,8 @@ function ProjectDashboardContent({ id }: { id: string }) {
                 onSaveReviewResult={saveReviewResultInStore}
                 initialSelectedReviewId={targetReviewId}
                 showToast={showToast}
+                onNavigateToCheck={handleNavigateToCheck}
+                setIssues={setIssues}
               />
               )
             ) : activeTab === "Issues" ? (
@@ -915,8 +908,6 @@ function ProjectDashboardContent({ id }: { id: string }) {
         setEditExpected={setEditExpected}
         editNotes={editNotes}
         setEditNotes={setEditNotes}
-        editCriteria={editCriteria}
-        toggleSubItem={toggleSubItem}
         handleSaveCheck={handleSaveCheck}
       />
 
