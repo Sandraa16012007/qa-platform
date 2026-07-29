@@ -20,7 +20,11 @@ import {
   ExternalLink,
   GitBranch,
 } from "lucide-react";
-import { Project, TestRun, ActivityItem, Toast } from "../../types";
+import { Project, TestRun, ActivityItem, Toast, HumanReviewItem } from "../../types";
+import { useHumanReviewStore } from "../../../../stores/useHumanReviewStore";
+import { useAiUnderstandingStore } from "../../../../stores/useAiUnderstandingStore";
+import { useIssuesStore } from "../../../../stores/useIssuesStore";
+import { useFrameworkStore } from "../../../../stores/useFrameworkStore";
 
 interface OverviewTabProps {
   project: Project;
@@ -63,6 +67,31 @@ export default function OverviewTab({
   setActiveTab,
   showToast,
 }: OverviewTabProps) {
+  const humanReviews = useHumanReviewStore((state: { humanReviews: HumanReviewItem[] }) => state.humanReviews);
+  const issues = useIssuesStore((state) => state.issues);
+  const checks = useFrameworkStore((state) => state.checks);
+
+  // Dynamic Human Reviews Derived State
+  const pendingCount = humanReviews.filter((r) => r.status === "Needs Review").length;
+  const activeCount = humanReviews.filter((r) => r.status === "In Progress").length;
+  const doneCount = humanReviews.filter((r) =>
+    ["Completed", "Passed", "Failed", "Needs Improvement", "Not Applicable"].includes(r.status)
+  ).length;
+  const totalReviews = humanReviews.length;
+  const hrProgress = totalReviews === 0 ? 0 : Math.round((doneCount / totalReviews) * 100);
+
+  // Dynamic QA Framework Progress (Human Items Only)
+  const humanChecks = checks.filter((c) => c.automation === "Human Review");
+  const humanChecksCompleted = humanChecks.filter((c) => c.status === "Passed" || c.status === "Skipped").length;
+  const humanFrameworkPct = humanChecks.length === 0 ? 100 : Math.round((humanChecksCompleted / humanChecks.length) * 100);
+
+  // Dynamic Issues Derived State
+  const openIssues = issues.filter((i) => i.status === "Open");
+  const criticalCount = openIssues.filter((i) => i.severity === "Critical").length;
+  const highCount = openIssues.filter((i) => i.severity === "High").length;
+  const mediumCount = openIssues.filter((i) => i.severity === "Medium").length;
+  const lowCount = openIssues.filter((i) => i.severity === "Low").length;
+
   return (
     <div className="grid grid-cols-12 gap-5 items-start">
       {/* Main panel - 8 columns */}
@@ -128,14 +157,14 @@ export default function OverviewTab({
                   <span className="text-xs text-on-surface-variant font-bold uppercase tracking-wider">
                     Human Review
                   </span>
-                  <h4 className="text-xl font-bold text-on-surface mt-1">45% Evaluated</h4>
+                  <h4 className="text-xl font-bold text-on-surface mt-1">{hrProgress}% Evaluated</h4>
                 </div>
                 <span className="text-[9px] bg-yellow-dim border border-yellow/20 text-yellow px-1.5 py-0.5 rounded font-mono font-bold uppercase">
-                  Pending
+                  {hrProgress > 0 ? "In Progress" : "Pending"}
                 </span>
               </div>
               <div className="h-1 bg-surface-container-high w-full rounded-full overflow-hidden my-3">
-                <div className="h-full bg-primary" style={{ width: "45%" }} />
+                <div className="h-full bg-primary" style={{ width: `${hrProgress}%` }} />
               </div>
               <button
                 onClick={() => setActiveTab("Human Reviews")}
@@ -218,21 +247,65 @@ export default function OverviewTab({
 
         {/* AI Product Understanding */}
         <div className="space-y-3">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant font-mono">
-            AI Understanding
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant font-mono">
+              AI Understanding
+            </h3>
+            <div className="flex items-center gap-2">
+              {isEditingSummary ? (
+                <>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await useAiUnderstandingStore.getState().saveUnderstanding(project.id);
+                        setIsEditingSummary(false);
+                        showToast("AI Understanding saved successfully!", "success");
+                      } catch (err) {
+                        showToast("Failed to save AI Understanding.", "error");
+                      }
+                    }}
+                    className="px-2.5 py-1 bg-primary text-on-primary-container text-[11px] font-bold uppercase tracking-wider rounded hover:bg-primary-hover transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => setIsEditingSummary(false)}
+                    className="px-2 py-1 bg-surface-container-high border border-outline text-on-surface-variant text-[11px] font-bold uppercase tracking-wider rounded hover:text-on-surface transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setIsEditingSummary(true)}
+                  className="px-2.5 py-1 bg-surface-container-high border border-outline text-primary text-[11px] font-bold uppercase tracking-wider rounded hover:border-primary transition-all cursor-pointer"
+                >
+                  Edit Controls
+                </button>
+              )}
+            </div>
+          </div>
           <div className="neo-border bg-surface p-5 rounded-xl space-y-4">
             {/* Application Summary */}
-            <div className="space-y-1 pb-3 border-b border-outline-variant">
+            <div className="space-y-1.5 pb-3 border-b border-outline-variant">
               <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono block">
                 Application Summary
               </label>
-              <p className="text-xs text-on-surface-variant leading-relaxed">
-                {summaryText}
-              </p>
+              {isEditingSummary ? (
+                <textarea
+                  className="w-full bg-surface-container-low border border-outline rounded p-2.5 text-xs text-on-surface leading-relaxed focus:outline-none focus:border-primary"
+                  rows={3}
+                  value={summaryText}
+                  onChange={(e) => setSummaryText(e.target.value)}
+                />
+              ) : (
+                <p className="text-xs text-on-surface-variant leading-relaxed">
+                  {summaryText}
+                </p>
+              )}
             </div>
 
-            {/* Read-only breakdown columns */}
+            {/* Breakdown columns */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
                 { title: "Detected Users", tags: users },
@@ -332,15 +405,15 @@ export default function OverviewTab({
             <div className="grid grid-cols-3 gap-2 text-center my-3">
               <div className="bg-surface-container-low p-2 rounded">
                 <p className="text-[10px] text-text-muted uppercase">Pending</p>
-                <p className="text-sm font-bold text-yellow">12</p>
+                <p className="text-sm font-bold text-yellow">{pendingCount}</p>
               </div>
               <div className="bg-surface-container-low p-2 rounded">
                 <p className="text-[10px] text-text-muted uppercase">Active</p>
-                <p className="text-sm font-bold text-primary">4</p>
+                <p className="text-sm font-bold text-primary">{activeCount}</p>
               </div>
               <div className="bg-surface-container-low p-2 rounded">
                 <p className="text-[10px] text-text-muted uppercase">Done</p>
-                <p className="text-sm font-bold text-emerald-400">31</p>
+                <p className="text-sm font-bold text-emerald-400">{doneCount}</p>
               </div>
             </div>
             <button
@@ -354,24 +427,24 @@ export default function OverviewTab({
           {/* Open Issues */}
           <div className="neo-border bg-surface p-4 rounded-xl flex flex-col justify-between">
             <h4 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant font-mono">
-              Open Issues
+              Open Issues ({openIssues.length})
             </h4>
             <div className="grid grid-cols-4 gap-1 text-center my-3">
               <div className="bg-surface-container-low p-1.5 rounded">
                 <p className="text-[8px] text-text-muted uppercase">Critical</p>
-                <p className="text-xs font-bold text-magenta">2</p>
+                <p className="text-xs font-bold text-magenta">{criticalCount}</p>
               </div>
               <div className="bg-surface-container-low p-1.5 rounded">
                 <p className="text-[8px] text-text-muted uppercase">High</p>
-                <p className="text-xs font-bold text-magenta/80">6</p>
+                <p className="text-xs font-bold text-magenta/80">{highCount}</p>
               </div>
               <div className="bg-surface-container-low p-1.5 rounded">
                 <p className="text-[8px] text-text-muted uppercase">Medium</p>
-                <p className="text-xs font-bold text-yellow">14</p>
+                <p className="text-xs font-bold text-yellow">{mediumCount}</p>
               </div>
               <div className="bg-surface-container-low p-1.5 rounded">
                 <p className="text-[8px] text-text-muted uppercase">Low</p>
-                <p className="text-xs font-bold text-text-muted">27</p>
+                <p className="text-xs font-bold text-text-muted">{lowCount}</p>
               </div>
             </div>
             <button
@@ -448,7 +521,7 @@ export default function OverviewTab({
             {[
               { label: "Project Owner", value: project.owner, icon: User },
               { label: "Application Type", value: project.type, icon: Laptop },
-              { label: "Domain", value: project.description, icon: Globe },
+              { label: "Domain", value: project.domain || project.description, icon: Globe },
               { label: "Created Date", value: project.createdDate, icon: Calendar },
               { label: "Framework Version", value: project.version, icon: Code },
               { label: "Last Updated", value: project.lastUpdated, icon: Clock },

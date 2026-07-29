@@ -15,6 +15,19 @@ export async function fetchQaFramework(projectId: string): Promise<QaCheck[]> {
   return (data as DbQaFramework[]).map(dbQaFrameworkToFrontend);
 }
 
+/** Fetch a single QA check by ID. Returns null if not found. */
+export async function fetchQaCheckById(id: string): Promise<QaCheck | null> {
+  const { data, error } = await supabase
+    .from("qa_framework")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? dbQaFrameworkToFrontend(data as DbQaFramework) : null;
+}
+
+
 /** Apply a partial update to a QA check row, then sync its linked human_reviews row. */
 export async function updateQaCheck(id: string, updates: Partial<QaCheck>): Promise<QaCheck> {
   const payload = frontendQaCheckToDb(updates);

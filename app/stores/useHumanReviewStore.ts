@@ -47,31 +47,55 @@ export const useHumanReviewStore = create<HumanReviewStore>((set, get) => ({
     set({ isLoading: true, currentProjectId: projectId });
     try {
       const humanReviews = await humanReviewsService.fetchHumanReviews(projectId);
-      if (humanReviews && humanReviews.length > 0) {
-        set({ humanReviews, isLoading: false });
-      } else {
-        set((state) => ({
-          humanReviews: state.humanReviews.length > 0 ? state.humanReviews : initialHumanReviews,
-          isLoading: false,
-        }));
-      }
-    } catch (err) {
-      console.error("loadReviews failed:", err);
-      set((state) => ({
-        humanReviews: state.humanReviews.length > 0 ? state.humanReviews : initialHumanReviews,
-        isLoading: false,
-      }));
+      set({ humanReviews: humanReviews || [], isLoading: false });
+    } catch (err: any) {
+      console.error("loadReviews failed:", err?.message || err);
+      set({ humanReviews: [], isLoading: false });
     }
   },
 
   selectReview: (id) => set({ selectedReviewId: id }),
 
-  updateReview: (id, updates) =>
+  updateReview: (id, updates) => {
+    const existing = get().humanReviews.find((r) => r.id === id);
+    if (!existing) return;
+
     set((state) => ({
       humanReviews: state.humanReviews.map((r) =>
         r.id === id ? { ...r, ...updates } : r
       ),
-    })),
+    }));
+
+    if (updates.status || updates.reviewResult) {
+      const checkStatusMap: Record<HumanReviewItem["status"], "Not Started" | "In Progress" | "Passed" | "Failed" | "Skipped"> = {
+        "Needs Review": "Not Started",
+        "In Progress": "In Progress",
+        Completed: "Passed",
+        Passed: "Passed",
+        Failed: "Failed",
+        "Needs Improvement": "In Progress",
+        "Not Applicable": "Skipped",
+      };
+
+      if (existing.checkId && updates.status) {
+        useFrameworkStore.getState().patchCheckLocal(existing.checkId, {
+          status: checkStatusMap[updates.status],
+        });
+      }
+
+      const projectId = get().currentProjectId;
+      if (projectId) {
+        humanReviewsService
+          .recomputeHumanReviewProgress(projectId)
+          .then((pct) =>
+            useProjectStore.getState().patchProjectLocal(projectId, {
+              humanReviewProgress: pct,
+            })
+          )
+          .catch((err) => console.error("recomputeHumanReviewProgress failed:", err));
+      }
+    }
+  },
 
   saveReviewResult: (id, checkId, result, rating, notes, screenshotUrl) => {
     let computedStatus: HumanReviewItem["status"] = "Completed";
@@ -97,9 +121,7 @@ export const useHumanReviewStore = create<HumanReviewStore>((set, get) => ({
       ),
     }));
 
-    // Mirror the same status onto the linked QA Framework checklist item so
-    // the two stay in sync (Pass→Passed, Fail→Failed, Needs Improvement→In
-    // Progress, N/A→Skipped), matching the mapping the service applies.
+    // Mirror status onto linked QA Framework item
     const checkStatusMap: Record<HumanReviewItem["status"], "Not Started" | "In Progress" | "Passed" | "Failed" | "Skipped"> = {
       "Needs Review": "Not Started",
       "In Progress": "In Progress",
@@ -120,7 +142,6 @@ export const useHumanReviewStore = create<HumanReviewStore>((set, get) => ({
           humanReviews: state.humanReviews.map((item) => (item.id === id ? saved : item)),
         }));
 
-        // Recompute the live Human Review completion % for the project card.
         const projectId = get().currentProjectId;
         if (projectId) {
           humanReviewsService

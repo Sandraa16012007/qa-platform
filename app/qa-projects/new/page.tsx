@@ -19,7 +19,9 @@ import { UploadedFile } from "./components/UploadCard";
 import { safeGenerateJSON } from "../../lib/gemini";
 import { useFrameworkStore } from "../../stores/useFrameworkStore";
 import { useHumanReviewStore } from "../../stores/useHumanReviewStore";
-import { QaCheck, HumanReviewItem } from "../../types";
+import { useProjectStore } from "../../stores/useProjectStore";
+import { createProjectAfterGeneration } from "../../lib/services/projects";
+import { QaCheck, HumanReviewItem, Project } from "../../types";
 
 interface AiUnderstandingGenResult {
   summary: string;
@@ -470,36 +472,54 @@ IMPORTANT Rules:
         }
       }
 
-      // 1. Populate Framework Store
-      useFrameworkStore.setState({ checks: generatedChecks, currentProjectId: "1" });
+      // Persist Project, AI Understanding, QA Framework & Human Reviews to Supabase
+      try {
+        const result = await createProjectAfterGeneration({
+          project: {
+            name: projectName || "New QA Project",
+            type: productType || "Web Application",
+            domain: domain || "Software",
+            description: description || "QA Engineering project",
+            qualityScore: 0,
+            status: "In Progress",
+            frameworkProgress: 100,
+            automationProgress: 0,
+            humanReviewProgress: 0,
+            version: "v1.0",
+            owner: "Admin Engineer",
+            repositoryUrl: githubUrl || "https://github.com/company/project",
+            deploymentUrl: websiteUrl || "https://app.dev",
+          },
+          aiUnderstanding: {
+            summary: aiSummary,
+            detectedUsers,
+            detectedFeatures,
+            criticalWorkflows,
+            riskAreas,
+            qaCoverage,
+          },
+          qaChecks: generatedChecks,
+        });
 
-      // 2. Populate Human Reviews Store (only framework items where automation === "Human Review")
-      const humanReviews: HumanReviewItem[] = generatedChecks
-        .filter((c) => c.automation === "Human Review")
-        .map((c, idx) => ({
-          id: `hr-${c.id || idx}`,
-          checkId: c.id,
-          title: c.title,
-          level: c.level,
-          category: c.category,
-          priority: c.priority,
-          status: "Needs Review",
-          automation: "Human Review",
-          description: c.description,
-          expectedBehavior: c.expectedBehavior,
-          notes: c.notes,
-        }));
+        // Hydrate stores with the newly generated Supabase UUID
+        await useProjectStore.getState().loadProjects();
+        await useFrameworkStore.getState().loadChecks(result.projectId);
+        await useHumanReviewStore.getState().loadReviews(result.projectId);
+        await useAiUnderstandingStore.getState().loadUnderstanding(result.projectId);
 
-      useHumanReviewStore.setState({ humanReviews, currentProjectId: "1" });
+        // Step animation
+        for (let s = 0; s <= GENERATION_STEPS.length; s++) {
+          if (isCancelled) return;
+          setGenCompleted(s);
+          await new Promise((r) => setTimeout(r, 200));
+        }
 
-      // Step animation
-      for (let s = 0; s <= GENERATION_STEPS.length; s++) {
-        if (isCancelled) return;
-        setGenCompleted(s);
-        await new Promise((r) => setTimeout(r, 200));
+        router.push(`/qa-projects/${result.projectId}`);
+      } catch (saveErr: any) {
+        console.error("Failed to save project to Supabase:", saveErr);
+        showToast(`Failed to save project to database: ${saveErr?.message || "Error"}`, "error");
+        setIsGenerating(false);
       }
-
-      router.push("/qa-projects/1");
     };
 
     runFrameworkGeneration();

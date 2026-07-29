@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { HumanReviewItem, IssueItem, Toast } from "../../types";
 import FilterDropdown from "../FilterDropdown";
+import { useIssuesStore } from "../../../../stores/useIssuesStore";
+import { useFrameworkStore } from "../../../../stores/useFrameworkStore";
 
 interface HumanReviewsTabProps {
   humanReviews: HumanReviewItem[];
@@ -152,11 +154,20 @@ export default function HumanReviewsTab({
     }
   };
 
-  // Create issue from review item
-  const handleCreateIssue = () => {
+  // Create issue from review item (enforcing 1-to-1 issue per human review constraint)
+  const handleCreateIssue = async () => {
     if (!activeReview) return;
-    const newIssue: IssueItem = {
-      id: `issue-${Date.now()}`,
+
+    // Check if an issue already exists for this human review item
+    const existingIssues = useIssuesStore.getState().issues;
+    const existingForReview = existingIssues.find((i) => i.linkedReviewId === activeReview.id);
+    if (existingForReview) {
+      showToast(`An issue already exists for "${activeReview.title}"!`, "info");
+      return;
+    }
+
+    const currentProjectId = useFrameworkStore.getState().currentProjectId;
+    const issuePayload: Partial<IssueItem> = {
       title: `Review Finding: ${activeReview.title}`,
       severity: activeReview.priority,
       status: "Open",
@@ -166,15 +177,30 @@ export default function HumanReviewsTab({
       assignedTo: "Admin Engineer",
       description: formNotes || activeReview.notes || activeReview.description,
       recommendation: `Address human review feedback for ${activeReview.title}`,
-      createdDate: "Just now",
       linkedCheckId: activeReview.checkId,
       linkedReviewId: activeReview.id,
     };
 
-    if (setIssues) {
+    if (currentProjectId) {
+      try {
+        await useIssuesStore.getState().addIssue(currentProjectId, issuePayload);
+        showToast(`Created issue for "${activeReview.title}"!`, "warning");
+      } catch (err: any) {
+        if (err?.code === "23505") { // Postgres unique violation
+          showToast(`An issue already exists for "${activeReview.title}"!`, "info");
+        } else {
+          showToast("Failed to create issue.", "error");
+        }
+      }
+    } else if (setIssues) {
+      const newIssue: IssueItem = {
+        id: `issue-${Date.now()}`,
+        ...issuePayload,
+        createdDate: "Just now",
+      } as IssueItem;
       setIssues((prev) => [newIssue, ...prev]);
+      showToast(`Created issue for "${activeReview.title}"!`, "warning");
     }
-    showToast(`Created issue for "${activeReview.title}"!`, "warning");
   };
 
   // Hierarchy tree calculation

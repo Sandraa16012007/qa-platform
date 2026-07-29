@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, Suspense, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, notFound } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -43,6 +43,8 @@ import { useProjectStore } from "../../stores/useProjectStore";
 import { useFrameworkStore } from "../../stores/useFrameworkStore";
 import { useHumanReviewStore } from "../../stores/useHumanReviewStore";
 import { useAiUnderstandingStore } from "../../stores/useAiUnderstandingStore";
+import { useIssuesStore } from "../../stores/useIssuesStore";
+import { usePageNotesStore } from "../../stores/usePageNotesStore";
 
 // Components
 import ProjectHeader from "./components/ProjectHeader";
@@ -67,35 +69,41 @@ function ProjectDashboardContent({ id }: { id: string }) {
   const loadProjectsInStore = useProjectStore((state) => state.loadProjects);
   const isProjectsLoading = useProjectStore((state) => state.isLoading);
   const isProjectsLoaded = useProjectStore((state) => state.isLoaded);
+
   const project = useMemo(() => {
-    return projects.find((p) => p.id === id) || projects[0];
+    return projects.find((p) => p.id === id) || null;
   }, [projects, id]);
 
   useEffect(() => {
     selectProjectInStore(id);
   }, [id, selectProjectInStore]);
 
-  // Loads the project list from Supabase if it isn't already loaded — this
-  // page can be reached directly (URL, refresh, bookmark) without ever
-  // visiting /qa-projects first, so it can't rely on that page having
-  // already populated the store.
+  // Redirection to Next.js 404 page if project ID is invalid after loading completes
   useEffect(() => {
-    loadProjectsInStore();
-  }, [loadProjectsInStore]);
+    if (isProjectsLoaded && !isProjectsLoading && !project) {
+      notFound();
+    }
+  }, [isProjectsLoaded, isProjectsLoading, project]);
 
-  // Load this project's QA Framework, Human Reviews, and AI Understanding
-  // from Supabase whenever the project id changes.
+  // Hydrate all Zustand stores from Supabase whenever the project opens
   const loadChecks = useFrameworkStore((state) => state.loadChecks);
   const loadReviews = useHumanReviewStore((state) => state.loadReviews);
   const loadUnderstanding = useAiUnderstandingStore((state) => state.loadUnderstanding);
+  const loadIssues = useIssuesStore((state) => state.loadIssues);
+  const loadPageNotes = usePageNotesStore((state) => state.loadPageNotes);
   const isChecksLoading = useFrameworkStore((state) => state.isLoading);
   const isReviewsLoading = useHumanReviewStore((state) => state.isLoading);
 
   useEffect(() => {
-    loadChecks(id);
-    loadReviews(id);
-    loadUnderstanding(id);
-  }, [id, loadChecks, loadReviews, loadUnderstanding]);
+    if (id) {
+      loadProjectsInStore();
+      loadUnderstanding(id);
+      loadChecks(id);
+      loadReviews(id);
+      loadIssues(id);
+      loadPageNotes(id);
+    }
+  }, [id, loadProjectsInStore, loadUnderstanding, loadChecks, loadReviews, loadIssues, loadPageNotes]);
 
   // Tab State (global UI store)
   const activeTab = useUiStore((state) => state.activeTab);
@@ -323,9 +331,15 @@ function ProjectDashboardContent({ id }: { id: string }) {
   const setHumanReviews = useHumanReviewStore((state) => state.setHumanReviews);
   const saveReviewResultInStore = useHumanReviewStore((state) => state.saveReviewResult);
 
-  // Issues Tab & Page Notes State
-  const [issues, setIssues] = useState<IssueItem[]>(initialIssues);
-  const [pageNotes, setPageNotes] = useState<PageNote[]>(initialPageNotes);
+  // Issues Tab & Page Notes State (global stores populated from Supabase)
+  const issues = useIssuesStore((state) => state.issues);
+  const setIssues = useIssuesStore((state) => state.setIssues);
+  const updateIssueInStore = useIssuesStore((state) => state.updateIssue);
+
+  const pageNotes = usePageNotesStore((state) => state.pageNotes);
+  const setPageNotes = usePageNotesStore((state) => state.setPageNotes);
+  const addPageNoteInStore = usePageNotesStore((state) => state.addPageNote);
+  const deletePageNoteInStore = usePageNotesStore((state) => state.deletePageNote);
 
   const handleNavigateToCheck = (checkId: string) => {
     setActiveTab("QA Framework");
@@ -857,6 +871,9 @@ function ProjectDashboardContent({ id }: { id: string }) {
                 onNavigateToCheck={handleNavigateToCheck}
                 onNavigateToReview={handleNavigateToReview}
                 showToast={showToast}
+                onAddPageNote={(note) => addPageNoteInStore(project.id, note)}
+                onDeletePageNote={(noteId) => deletePageNoteInStore(noteId)}
+                onUpdateIssueStatus={(issueId, status) => updateIssueInStore(issueId, { status })}
               />
             ) : activeTab === "Reports" ? (
               <ReportsTab

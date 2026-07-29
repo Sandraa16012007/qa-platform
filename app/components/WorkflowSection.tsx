@@ -9,10 +9,8 @@ import {
   Terminal,
   ArrowRight,
   CheckCircle2,
-  AlertCircle,
-  Cpu,
 } from "lucide-react";
-import { allProjectsList } from "../mockData";
+import { useProjectStore } from "../stores/useProjectStore";
 
 /* ── Workflow stages ── */
 const stages = [
@@ -25,8 +23,7 @@ const stages = [
   {
     title: "Generate",
     icon: Sparkles,
-    description:
-      "Create product, page, feature, and domain-specific checks.",
+    description: "Create product, page, feature, and domain-specific checks.",
     color: "yellow" as const,
   },
   {
@@ -38,8 +35,7 @@ const stages = [
   {
     title: "Report",
     icon: Terminal,
-    description:
-      "Get quality scores, issues, and improvement recommendations.",
+    description: "Get quality scores, issues, and improvement recommendations.",
     color: "magenta" as const,
   },
 ];
@@ -72,6 +68,8 @@ const colorMap = {
 };
 
 export default function WorkflowSection() {
+  const projects = useProjectStore((state) => state.projects);
+
   return (
     <motion.section
       initial={{ opacity: 0, y: 16 }}
@@ -163,97 +161,109 @@ export default function WorkflowSection() {
           <div className="h-px flex-1 mx-4 bg-outline-variant" />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {allProjectsList.map((project, index) => {
-            const statusBg =
-              project.qualityScore >= 85
-                ? "bg-primary/10 border-primary/20 text-primary"
-                : "bg-yellow/10 border-yellow/20 text-yellow";
-            const barColor =
-              project.qualityScore >= 85 ? "bg-primary" : "bg-yellow";
+        {projects.length === 0 ? (
+          <div className="neo-border bg-surface-container-low p-8 text-center rounded-xl space-y-3">
+            <p className="text-sm text-on-surface-variant">No projects created yet.</p>
+            <Link
+              href="/qa-projects/new"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline uppercase tracking-wider"
+            >
+              + Create your first project →
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {projects.map((project, index) => {
+              const statusBg =
+                project.qualityScore >= 85
+                  ? "bg-primary/10 border-primary/20 text-primary"
+                  : "bg-yellow/10 border-yellow/20 text-yellow";
+              const barColor =
+                project.qualityScore >= 85 ? "bg-primary" : "bg-yellow";
 
-            return (
-              <Link href={`/qa-projects/${project.id}`} key={project.id} className="block">
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
-                  className="neo-border bg-surface-container-low p-6 space-y-4 group hover:border-primary transition-all rounded-xl cursor-pointer"
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <h4
-                        style={{ fontSize: 24, lineHeight: 1.3 }}
-                        className="font-bold text-on-surface"
-                      >
-                        {project.name}
-                      </h4>
-                      <div className="flex items-center gap-2">
-                        <div
-                          style={{ fontSize: 10 }}
-                          className={`px-2 py-0.5 border font-mono uppercase rounded ${statusBg}`}
+              return (
+                <Link href={`/qa-projects/${project.id}`} key={project.id} className="block">
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
+                    className="neo-border bg-surface-container-low p-6 space-y-4 group hover:border-primary transition-all rounded-xl cursor-pointer"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-1">
+                        <h4
+                          style={{ fontSize: 24, lineHeight: 1.3 }}
+                          className="font-bold text-on-surface"
                         >
-                          {project.status}
+                          {project.name}
+                        </h4>
+                        <div className="flex items-center gap-2">
+                          <div
+                            style={{ fontSize: 10 }}
+                            className={`px-2 py-0.5 border font-mono uppercase rounded ${statusBg}`}
+                          >
+                            {project.status}
+                          </div>
+                          <span
+                            style={{ fontSize: 12 }}
+                            className="text-on-surface-variant uppercase"
+                          >
+                            Updated {project.lastUpdated}
+                          </span>
                         </div>
-                        <span
-                          style={{ fontSize: 12 }}
-                          className="text-on-surface-variant uppercase"
+                      </div>
+                      <div className="text-right">
+                        <div
+                          style={{ fontSize: 28 }}
+                          className={`font-bold ${project.qualityScore >= 85 ? "text-primary" : "text-yellow"}`}
                         >
-                          Updated {project.lastUpdated}
+                          {project.qualityScore}%
+                        </div>
+                        <div
+                          style={{ fontSize: 10, letterSpacing: "-0.04em" }}
+                          className="font-semibold text-on-surface-variant uppercase"
+                        >
+                          Avg Score
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="h-1 bg-surface-container-highest w-full rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${project.qualityScore}%` }}
+                        transition={{
+                          duration: 1,
+                          delay: 0.5 + index * 0.1,
+                          ease: "easeOut",
+                        }}
+                        className={`h-full ${barColor}`}
+                      />
+                    </div>
+
+                    {/* Footer */}
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-1 text-on-surface-variant">
+                        <CheckCircle2 size={16} strokeWidth={1.5} />
+                        <span className="font-mono text-sm">
+                          {project.frameworkChecksCount || 35} Tests
                         </span>
                       </div>
-                    </div>
-                    <div className="text-right">
                       <div
-                        style={{ fontSize: 28 }}
-                        className={`font-bold ${project.qualityScore >= 85 ? "text-primary" : "text-yellow"}`}
+                        style={{ fontSize: 12 }}
+                        className="bg-primary/10 group-hover:bg-primary text-primary group-hover:text-on-primary-container px-2 py-1.5 font-bold uppercase tracking-widest rounded transition-all flex items-center gap-1 cursor-pointer"
                       >
-                        {project.qualityScore}%
-                      </div>
-                      <div
-                        style={{ fontSize: 10, letterSpacing: "-0.04em" }}
-                        className="font-semibold text-on-surface-variant uppercase"
-                      >
-                        Avg Score
+                        View Project{" "}
+                        <ArrowRight size={14} strokeWidth={2} />
                       </div>
                     </div>
-                  </div>
-
-                  {/* Progress bar */}
-                  <div className="h-1 bg-surface-container-highest w-full rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${project.qualityScore}%` }}
-                      transition={{
-                        duration: 1,
-                        delay: 0.5 + index * 0.1,
-                        ease: "easeOut",
-                      }}
-                      className={`h-full ${barColor}`}
-                    />
-                  </div>
-
-                  {/* Footer */}
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-1 text-on-surface-variant">
-                      <CheckCircle2 size={16} strokeWidth={1.5} />
-                      <span className="font-mono text-sm">
-                        {project.frameworkChecksCount || 308} Tests
-                      </span>
-                    </div>
-                    <div
-                      style={{ fontSize: 12 }}
-                      className="bg-primary/10 group-hover:bg-primary text-primary group-hover:text-on-primary-container px-2 py-1.5 font-bold uppercase tracking-widest rounded transition-all flex items-center gap-1 cursor-pointer"
-                    >
-                      View Project{" "}
-                      <ArrowRight size={14} strokeWidth={2} />
-                    </div>
-                  </div>
-                </motion.div>
-              </Link>
-            );
-          })}
-        </div>
+                  </motion.div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </div>
     </motion.section>
   );

@@ -40,3 +40,14 @@ export async function upsertAiUnderstanding(
   if (error) throw error;
   return dbAiUnderstandingToState(row as DbAiUnderstanding);
 }
+
+/** Delete the ai_understanding row for a project. */
+export async function deleteAiUnderstanding(projectId: string): Promise<void> {
+  const { error } = await supabase
+    .from("ai_understanding")
+    .delete()
+    .eq("project_id", projectId);
+
+  if (error) throw error;
+}
+

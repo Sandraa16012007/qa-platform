@@ -17,6 +17,7 @@ interface AiUnderstandingStore extends AiUnderstandingState {
   currentProjectId: string | null;
 
   loadUnderstanding: (projectId: string) => Promise<void>;
+  saveUnderstanding: (targetProjectId?: string) => Promise<void>;
   setUnderstanding: (data: Partial<AiUnderstandingState>) => void;
   updateSummary: (summary: string) => void;
   updateUsers: (users: string[]) => void;
@@ -29,13 +30,6 @@ interface AiUnderstandingStore extends AiUnderstandingState {
   setIsAnalyzing: (analyzing: boolean) => void;
   setIsEditingSummary: (editing: boolean) => void;
   resetUnderstanding: () => void;
-  /**
-   * Clears the project id edits get persisted against, without touching the
-   * editable fields themselves. Call this when entering a context (like the
-   * New Project wizard) that edits this same shared store but isn't tied to
-   * an existing saved project yet — otherwise edits could be written to
-   * whichever project was last viewed on the dashboard.
-   */
   clearProjectContext: () => void;
 }
 
@@ -51,33 +45,12 @@ const initialState: AiUnderstandingState = {
 };
 
 export const useAiUnderstandingStore = create<AiUnderstandingStore>((set, get) => {
-  // Persists the current understanding fields to Supabase in the background.
-  // Fire-and-forget: edits already applied optimistically to local state.
-  const persist = () => {
-    const projectId = get().currentProjectId;
-    if (!projectId) return;
-    const { summary, detectedUsers, detectedFeatures, criticalWorkflows, riskAreas, qaCoverage } =
-      get();
-    aiUnderstandingService
-      .upsertAiUnderstanding(projectId, {
-        summary,
-        detectedUsers,
-        detectedFeatures,
-        criticalWorkflows,
-        riskAreas,
-        qaCoverage,
-      })
-      .catch((err) => console.error("AI Understanding persist failed:", err));
-  };
-
   return {
     ...initialState,
     isLoading: false,
     currentProjectId: null,
 
     // Fetches the AI Understanding row for a project from Supabase.
-    // If no row exists yet (e.g. framework not generated for this project),
-    // resets to the empty defaults so the UI falls back to its own copy.
     loadUnderstanding: async (projectId) => {
       if (get().isLoading && get().currentProjectId === projectId) return;
       set({ isLoading: true, currentProjectId: projectId });
@@ -94,38 +67,44 @@ export const useAiUnderstandingStore = create<AiUnderstandingStore>((set, get) =
           }),
           isLoading: false,
         });
-      } catch (err) {
-        console.error("loadUnderstanding failed:", err);
+      } catch (err: any) {
+        console.error("loadUnderstanding failed:", err?.message || err);
         set({ isLoading: false });
+      }
+    },
+
+    // Saves the current AI Understanding fields to Supabase ONLY when explicitly invoked.
+    saveUnderstanding: async (targetProjectId?: string) => {
+      const projectId = targetProjectId || get().currentProjectId;
+      if (!projectId) return;
+      const { summary, detectedUsers, detectedFeatures, criticalWorkflows, riskAreas, qaCoverage } =
+        get();
+      try {
+        await aiUnderstandingService.upsertAiUnderstanding(projectId, {
+          summary,
+          detectedUsers,
+          detectedFeatures,
+          criticalWorkflows,
+          riskAreas,
+          qaCoverage,
+        });
+      } catch (err) {
+        console.error("saveUnderstanding failed:", err);
+        throw err;
       }
     },
 
     setUnderstanding: (data) => set((state) => ({ ...state, ...data })),
 
-    updateSummary: (summary) => {
-      set({ summary });
-      persist();
-    },
+    updateSummary: (summary) => set({ summary }),
 
-    updateUsers: (detectedUsers) => {
-      set({ detectedUsers });
-      persist();
-    },
+    updateUsers: (detectedUsers) => set({ detectedUsers }),
 
-    updateFeatures: (detectedFeatures) => {
-      set({ detectedFeatures });
-      persist();
-    },
+    updateFeatures: (detectedFeatures) => set({ detectedFeatures }),
 
-    updateWorkflows: (criticalWorkflows) => {
-      set({ criticalWorkflows });
-      persist();
-    },
+    updateWorkflows: (criticalWorkflows) => set({ criticalWorkflows }),
 
-    updateRisks: (riskAreas) => {
-      set({ riskAreas });
-      persist();
-    },
+    updateRisks: (riskAreas) => set({ riskAreas }),
 
     setQaCoverage: (value) => {
       set((state) => ({
@@ -134,7 +113,6 @@ export const useAiUnderstandingStore = create<AiUnderstandingStore>((set, get) =
             ? (value as (prev: string[]) => string[])(state.qaCoverage)
             : value,
       }));
-      persist();
     },
 
     setIsAnalyzing: (isAnalyzing) => set({ isAnalyzing }),
@@ -146,3 +124,4 @@ export const useAiUnderstandingStore = create<AiUnderstandingStore>((set, get) =
     clearProjectContext: () => set({ currentProjectId: null }),
   };
 });
+

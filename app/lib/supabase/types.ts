@@ -106,11 +106,30 @@ export interface DbHumanReviewJoined extends DbHumanReview {
   >;
 }
 
+// ── issues ──
+
+export interface DbIssue {
+  id: string;
+  project_id: string;
+  human_review_id: string | null;
+  framework_item_id: string | null;
+  title: string;
+  severity: string;
+  status: string;
+  source: string;
+  level: string;
+  linked_page: string;
+  assigned_to: string;
+  description: string;
+  recommendation: string;
+  created_at: string;
+}
+
 // ─────────────────────────────────────────────
 // Mappers: DB rows → Frontend types
 // ─────────────────────────────────────────────
 
-import type { Project, QaCheck, HumanReviewItem, PageNote } from "../../types";
+import type { Project, QaCheck, HumanReviewItem, PageNote, IssueItem } from "../../types";
 import type { AiUnderstandingState } from "../../stores/useAiUnderstandingStore";
 
 /** Format an ISO timestamp into a human-friendly relative or date string. */
@@ -260,3 +279,41 @@ export function dbAiUnderstandingToState(
     qaCoverage: row.quality_goals ?? [],
   };
 }
+
+export function dbIssueToFrontend(row: DbIssue): IssueItem {
+  return {
+    id: row.id,
+    title: row.title,
+    severity: row.severity as IssueItem["severity"],
+    status: row.status as IssueItem["status"],
+    source: row.source as IssueItem["source"],
+    level: row.level as IssueItem["level"],
+    linkedPage: row.linked_page,
+    assignedTo: row.assigned_to,
+    description: row.description,
+    recommendation: row.recommendation,
+    createdDate: formatDate(row.created_at),
+    linkedCheckId: row.framework_item_id ?? undefined,
+    linkedReviewId: row.human_review_id ?? undefined,
+  };
+}
+
+export function frontendIssueToDb(
+  issue: Partial<IssueItem>,
+  projectId: string
+): Partial<DbIssue> {
+  const mapped: Record<string, unknown> = { project_id: projectId };
+  if (issue.title !== undefined) mapped.title = issue.title;
+  if (issue.severity !== undefined) mapped.severity = issue.severity;
+  if (issue.status !== undefined) mapped.status = issue.status;
+  if (issue.source !== undefined) mapped.source = issue.source;
+  if (issue.level !== undefined) mapped.level = issue.level;
+  if (issue.linkedPage !== undefined) mapped.linked_page = issue.linkedPage;
+  if (issue.assignedTo !== undefined) mapped.assigned_to = issue.assignedTo;
+  if (issue.description !== undefined) mapped.description = issue.description;
+  if (issue.recommendation !== undefined) mapped.recommendation = issue.recommendation;
+  if (issue.linkedCheckId !== undefined) mapped.framework_item_id = issue.linkedCheckId || null;
+  if (issue.linkedReviewId !== undefined) mapped.human_review_id = issue.linkedReviewId || null;
+  return mapped as Partial<DbIssue>;
+}
+

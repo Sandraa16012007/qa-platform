@@ -56,6 +56,19 @@ export async function fetchHumanReviews(projectId: string): Promise<HumanReviewI
   return (data as unknown as DbHumanReviewJoined[]).map(dbHumanReviewToFrontend);
 }
 
+/** Fetch a single human review item by ID. Returns null if not found. */
+export async function fetchHumanReviewById(id: string): Promise<HumanReviewItem | null> {
+  const { data, error } = await supabase
+    .from("human_reviews")
+    .select(JOINED_SELECT)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? dbHumanReviewToFrontend(data as unknown as DbHumanReviewJoined) : null;
+}
+
+
 /**
  * Keeps a qa_framework check's linked human_reviews row in sync with its
  * Validation Mode:
@@ -148,3 +161,14 @@ export async function recomputeHumanReviewProgress(projectId: string): Promise<n
 
   return percentage;
 }
+
+/** Delete a human review item by ID. */
+export async function deleteHumanReview(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("human_reviews")
+    .delete()
+    .eq("id", id);
+
+  if (error) throw error;
+}
+

@@ -27,26 +27,25 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   loadError: null,
 
   // Fetches all projects from Supabase and replaces local state.
-  // Falls back to the bundled mock list if the request fails (e.g. Supabase
-  // isn't configured yet), so the UI never gets stuck empty during setup.
+  // Fetches all projects from Supabase and replaces local state.
   loadProjects: async () => {
     if (get().isLoading) return;
     set({ isLoading: true, loadError: null });
     try {
       const projects = await projectsService.fetchProjects();
       set((state) => ({
-        projects,
+        projects: projects || [],
         isLoading: false,
         isLoaded: true,
         selectedProjectId: state.selectedProjectId || projects[0]?.id || null,
       }));
-    } catch (err) {
+    } catch (err: any) {
       console.error("loadProjects failed:", err);
       set({
         projects: [],
         isLoading: false,
         isLoaded: true,
-        loadError: err instanceof Error ? err.message : "Failed to load projects",
+        loadError: err?.message || "Failed to load projects",
       });
     }
   },

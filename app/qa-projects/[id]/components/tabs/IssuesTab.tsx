@@ -28,6 +28,7 @@ interface IssuesTabProps {
   showToast: (msg: string, type?: Toast["type"]) => void;
   onAddPageNote?: (note: { pageName: string; content: string }) => void;
   onDeletePageNote?: (id: string) => void;
+  onUpdateIssueStatus?: (id: string, status: IssueItem["status"]) => void;
 }
 
 export default function IssuesTab({
@@ -40,6 +41,7 @@ export default function IssuesTab({
   showToast,
   onAddPageNote,
   onDeletePageNote,
+  onUpdateIssueStatus,
 }: IssuesTabProps) {
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(
     issues[0]?.id || "issue-1"
@@ -120,9 +122,13 @@ export default function IssuesTab({
     if (!target) return;
     const nextStatus = target.status === "Resolved" ? "Open" : "Resolved";
 
-    setIssues((prev) =>
-      prev.map((item) => (item.id === issueId ? { ...item, status: nextStatus } : item))
-    );
+    if (onUpdateIssueStatus) {
+      onUpdateIssueStatus(issueId, nextStatus);
+    } else {
+      setIssues((prev) =>
+        prev.map((item) => (item.id === issueId ? { ...item, status: nextStatus } : item))
+      );
+    }
 
     showToast(
       nextStatus === "Resolved"
