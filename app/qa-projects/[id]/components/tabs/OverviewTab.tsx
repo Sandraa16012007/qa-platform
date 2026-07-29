@@ -32,9 +32,9 @@ interface OverviewTabProps {
   runs: TestRun[];
   activities: ActivityItem[];
   summaryText: string;
-  setSummaryText: (val: string) => void;
-  isEditingSummary: boolean;
-  setIsEditingSummary: (val: boolean) => void;
+  setSummaryText?: (val: string) => void;
+  isEditingSummary?: boolean;
+  setIsEditingSummary?: (val: boolean) => void;
   users: string[];
   setUsers: (val: string[]) => void;
   features: string[];
@@ -251,39 +251,9 @@ export default function OverviewTab({
             <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant font-mono">
               AI Understanding
             </h3>
-            <div className="flex items-center gap-2">
-              {isEditingSummary ? (
-                <>
-                  <button
-                    onClick={async () => {
-                      try {
-                        await useAiUnderstandingStore.getState().saveUnderstanding(project.id);
-                        setIsEditingSummary(false);
-                        showToast("AI Understanding saved successfully!", "success");
-                      } catch (err) {
-                        showToast("Failed to save AI Understanding.", "error");
-                      }
-                    }}
-                    className="px-2.5 py-1 bg-primary text-on-primary-container text-[11px] font-bold uppercase tracking-wider rounded hover:bg-primary-hover transition-all cursor-pointer flex items-center gap-1 shadow-sm"
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={() => setIsEditingSummary(false)}
-                    className="px-2 py-1 bg-surface-container-high border border-outline text-on-surface-variant text-[11px] font-bold uppercase tracking-wider rounded hover:text-on-surface transition-all cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => setIsEditingSummary(true)}
-                  className="px-2.5 py-1 bg-surface-container-high border border-outline text-primary text-[11px] font-bold uppercase tracking-wider rounded hover:border-primary transition-all cursor-pointer"
-                >
-                  Edit Controls
-                </button>
-              )}
-            </div>
+            <span className="text-[9px] bg-surface-container-high border border-outline text-on-surface-variant px-2 py-0.5 rounded font-mono uppercase font-bold">
+              Verified Specs
+            </span>
           </div>
           <div className="neo-border bg-surface p-5 rounded-xl space-y-4">
             {/* Application Summary */}
@@ -291,18 +261,9 @@ export default function OverviewTab({
               <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono block">
                 Application Summary
               </label>
-              {isEditingSummary ? (
-                <textarea
-                  className="w-full bg-surface-container-low border border-outline rounded p-2.5 text-xs text-on-surface leading-relaxed focus:outline-none focus:border-primary"
-                  rows={3}
-                  value={summaryText}
-                  onChange={(e) => setSummaryText(e.target.value)}
-                />
-              ) : (
-                <p className="text-xs text-on-surface-variant leading-relaxed">
-                  {summaryText}
-                </p>
-              )}
+              <p className="text-xs text-on-surface-variant leading-relaxed">
+                {summaryText}
+              </p>
             </div>
 
             {/* Breakdown columns */}

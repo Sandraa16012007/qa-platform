@@ -17,7 +17,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Quality AI — Dashboard",
+  title: "Quality Assurance Platform",
   description:
     "AI-powered quality engineering for your products. Generate QA frameworks, execute tests, guide human reviews.",
 };

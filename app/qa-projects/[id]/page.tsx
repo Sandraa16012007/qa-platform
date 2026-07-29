@@ -45,6 +45,7 @@ import { useHumanReviewStore } from "../../stores/useHumanReviewStore";
 import { useAiUnderstandingStore } from "../../stores/useAiUnderstandingStore";
 import { useIssuesStore } from "../../stores/useIssuesStore";
 import { usePageNotesStore } from "../../stores/usePageNotesStore";
+import * as projectsService from "../../lib/services/projects";
 
 // Components
 import ProjectHeader from "./components/ProjectHeader";
@@ -70,22 +71,15 @@ function ProjectDashboardContent({ id }: { id: string }) {
   const isProjectsLoading = useProjectStore((state) => state.isLoading);
   const isProjectsLoaded = useProjectStore((state) => state.isLoaded);
 
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [projectNotFound, setProjectNotFound] = useState(false);
+
   const project = useMemo(() => {
     return projects.find((p) => p.id === id) || null;
   }, [projects, id]);
 
-  useEffect(() => {
-    selectProjectInStore(id);
-  }, [id, selectProjectInStore]);
-
-  // Redirection to Next.js 404 page if project ID is invalid after loading completes
-  useEffect(() => {
-    if (isProjectsLoaded && !isProjectsLoading && !project) {
-      notFound();
-    }
-  }, [isProjectsLoaded, isProjectsLoading, project]);
-
-  // Hydrate all Zustand stores from Supabase whenever the project opens
+  // Load this project's QA Framework, Human Reviews, and AI Understanding
+  // from Supabase whenever the project id changes.
   const loadChecks = useFrameworkStore((state) => state.loadChecks);
   const loadReviews = useHumanReviewStore((state) => state.loadReviews);
   const loadUnderstanding = useAiUnderstandingStore((state) => state.loadUnderstanding);
@@ -95,15 +89,54 @@ function ProjectDashboardContent({ id }: { id: string }) {
   const isReviewsLoading = useHumanReviewStore((state) => state.isLoading);
 
   useEffect(() => {
-    if (id) {
-      loadProjectsInStore();
+    let isCancelled = false;
+
+    const initDashboard = async () => {
+      setIsInitializing(true);
+      selectProjectInStore(id);
+
+      // Hydrate all stores for this project
       loadUnderstanding(id);
       loadChecks(id);
       loadReviews(id);
       loadIssues(id);
       loadPageNotes(id);
+
+      // Ensure projects list is loaded from Supabase
+      await loadProjectsInStore();
+
+      // Check if project exists in store or directly in Supabase
+      const storeProjects = useProjectStore.getState().projects;
+      const foundInStore = storeProjects.find((p) => p.id === id);
+
+      if (!foundInStore) {
+        try {
+          const directProject = await projectsService.fetchProjectById(id);
+          if (!directProject && !isCancelled) {
+            setProjectNotFound(true);
+          }
+        } catch {
+          if (!isCancelled) setProjectNotFound(true);
+        }
+      }
+
+      if (!isCancelled) setIsInitializing(false);
+    };
+
+    if (id) {
+      initDashboard();
     }
-  }, [id, loadProjectsInStore, loadUnderstanding, loadChecks, loadReviews, loadIssues, loadPageNotes]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [id, selectProjectInStore, loadProjectsInStore, loadUnderstanding, loadChecks, loadReviews, loadIssues, loadPageNotes]);
+
+  useEffect(() => {
+    if (projectNotFound) {
+      notFound();
+    }
+  }, [projectNotFound]);
 
   // Tab State (global UI store)
   const activeTab = useUiStore((state) => state.activeTab);
@@ -692,8 +725,8 @@ function ProjectDashboardContent({ id }: { id: string }) {
 
   // Guard against direct navigation / refresh before the project list has
   // finished loading from Supabase, and against a genuinely unknown id.
-  if (!project) {
-    if (isProjectsLoading || !isProjectsLoaded) {
+  if (!project || isInitializing) {
+    if (isInitializing || isProjectsLoading || !isProjectsLoaded) {
       return (
         <div className="flex overflow-hidden bg-background text-foreground h-screen w-full">
           <Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />

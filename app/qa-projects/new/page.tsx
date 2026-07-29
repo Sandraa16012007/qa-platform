@@ -346,35 +346,60 @@ Return a single strict JSON object matching this structure:
   useEffect(() => {
     if (!isGenerating) return;
     let isCancelled = false;
+    let progressTimer: NodeJS.Timeout | null = null;
 
     const runFrameworkGeneration = async () => {
+      // Smooth progress timer while Gemini API and Supabase are generating
+      let currentStepIndex = 0;
+      progressTimer = setInterval(() => {
+        if (currentStepIndex < GENERATION_STEPS.length - 2) {
+          currentStepIndex++;
+          setGenCompleted(currentStepIndex);
+        }
+      }, 1400);
+
       const targetCount = qaDepth === "quick" ? 30 : qaDepth === "comprehensive" ? 60 : 45;
 
       const prompt = `
-Generate a tailored, production-grade QA Testing Framework for the following application context.
+You are an expert Principal QA Architect creating a highly specific, platform-aware QA Testing Framework.
 
-Product Parameters:
-- Name: ${projectName || "Unnamed Project"}
-- Type: ${productType || "Web Application"}
+APPLICATION CONTEXT:
+- Name: ${projectName || "Digital Application"}
+- Product Type: ${productType || "Web Application"}
 - Domain: ${domain || "Software"}
-- Description: ${description || "Application platform"}
+- Description: ${description || "Interactive software platform"}
 
-AI Product Understanding (User Reviewed):
-- Application Summary: ${aiSummary}
-- Target Users: ${detectedUsers.join(", ")}
-- Core Features: ${detectedFeatures.join(", ")}
+USER-VERIFIED PRODUCT UNDERSTANDING:
+- Summary: ${aiSummary}
+- Target User Personas: ${detectedUsers.join(", ")}
+- Key Features: ${detectedFeatures.join(", ")}
 - Critical Workflows: ${criticalWorkflows.join(", ")}
-- Risk Areas: ${riskAreas.join(", ")}
-- Selected QA Coverage: ${qaCoverage.join(", ")}
+- Identified Risk Areas: ${riskAreas.join(", ")}
+- QA Coverage Goals: ${qaCoverage.join(", ")}
 
-Testing Preferences:
-- Target QA Depth: ${qaDepth} (Must generate approximately ${targetCount} checks)
+TESTING PREFERENCES:
+- Target QA Depth: ${qaDepth} (Generate approximately ${targetCount} checks)
 - Quality Priorities: ${qualityPriorities.join(", ")}
 - Automation Preferences: ${automationPrefs.join(", ")}
 - Human Review Preferences: ${humanReviewCats.join(", ")}
-- Additional Instructions: ${additionalInstructions || "None"}
+- Additional Guidance: ${additionalInstructions || "None"}
 
-Requirements:
+STRICT CRITICAL RULES FOR CHECK TITLES & DESCRIPTIONS:
+1. Every title MUST be a specific, actionable, human-readable QA verification statement describing a real user interaction, system behavior, or UX expectation.
+   EXAMPLES OF HIGH QUALITY TITLES:
+   - "File upload completes successfully with visual progress feedback"
+   - "All interactive elements are keyboard accessible with focus indicators"
+   - "Pages and screens load within acceptable performance threshold"
+   - "Required form fields are validated before submission with inline errors"
+   - "Success and error toasts appear for key user actions"
+   - "Global navigation header is consistent across all application routes"
+   - "User session tokens are invalidated upon manual logout"
+   - "Responsive layout adjusts without overflow on mobile viewports"
+   - "Search query filters update results list dynamically"
+2. DO NOT use generic template titles like "Performance verification for Login Page" or "Navigation verification for Dashboard".
+3. Write domain-specific titles tailored to ${domain} and features like ${detectedFeatures.slice(0, 4).join(", ")}.
+
+JSON FORMAT REQUIREMENTS:
 Return a single JSON object matching:
 {
   "checks": [
@@ -383,10 +408,10 @@ Return a single JSON object matching:
       "level": "Product QA",
       "pageName": "Dashboard",
       "category": "Usability and product experience",
-      "title": "Check Title",
-      "description": "Verification description",
-      "expectedBehavior": "Expected result or acceptance criterion",
-      "notes": "Testing notes or spec guidance",
+      "title": "File upload completes successfully with visual progress feedback",
+      "description": "Ensure uploading PRD files shows live percentage and confirmation toast.",
+      "expectedBehavior": "Progress bar reaches 100% and success toast renders.",
+      "notes": "Verify with 10MB PDF and PNG files.",
       "automation": "Human Review",
       "priority": "High",
       "status": "Not Started",
@@ -394,23 +419,27 @@ Return a single JSON object matching:
     }
   ]
 }
-Generate approximately ${targetCount} items evenly distributed across the 5 QA levels ("Product QA", "Page QA", "Component QA", "Feature QA", "Release QA").
-IMPORTANT Rules:
-1. "category" MUST be strictly one of: ["Navigation", "Forms", "Accessibility", "Visual Design", "Usability and product experience", "Responsive", "Performance", "Security", "Authentication", "Validation", "Error Handling", "Content", "Notifications", "Search", "Filters", "Dashboard", "Tables", "Media", "SEO"].
-2. "pageName": Infer realistic page names based on description and detected features (e.g. "Login Page", "Dashboard", "Search Page", "Settings Page", "Overview Page").
-3. "automation": Either "Automated" or "Human Review". Place special emphasis on setting UX, Usability, Visual Polish, Brand Tone, Microcopy, and Product Experience checks to "Human Review".
-4. "priority": One of ["Critical", "High", "Medium", "Low"].
-5. "status": "Not Started".
+
+Rules for JSON fields:
+- "level": Distribute approximately ${targetCount} checks evenly across ["Product QA", "Page QA", "Component QA", "Feature QA", "Release QA"].
+- "category": MUST be strictly one of: ["Navigation", "Forms", "Accessibility", "Visual Design", "Usability and product experience", "Responsive", "Performance", "Security", "Authentication", "Validation", "Error Handling", "Content", "Notifications", "Search", "Filters", "Dashboard", "Tables", "Media", "SEO"].
+- "pageName": Infer realistic page names matching features (e.g. "Login Page", "Dashboard", "Search Page", "Settings Page", "Checkout Page").
+- "automation": Set UX, Usability, Visual Design, Copy, and Flow checks to "Human Review". Set API, Validation, DOM, and Security checks to "Automated".
+- "priority": One of ["Critical", "High", "Medium", "Low"].
+- "status": "Not Started".
 `;
 
       const res = await safeGenerateJSON<{ checks: Array<any> }>({
         prompt,
         systemInstruction:
           "You are a Senior Principal QA Architect. Produce a detailed QA testing framework array in strict JSON format only.",
-        temperature: 0.2,
+        temperature: 0.3,
       });
 
-      if (isCancelled) return;
+      if (isCancelled) {
+        if (progressTimer) clearInterval(progressTimer);
+        return;
+      }
 
       const allowedCategories = [
         "Navigation", "Forms", "Accessibility", "Visual Design", "Usability and product experience",
@@ -449,24 +478,41 @@ IMPORTANT Rules:
         });
       } else {
         showToast("Using built-in QA framework template checks.", "warning");
+        const specificTemplates = [
+          { title: "File upload completes successfully with visual progress feedback", cat: "Forms", page: "Upload Modal", auto: "Human Review", priority: "High" },
+          { title: "All interactive elements are keyboard accessible with focus indicators", cat: "Accessibility", page: "Global Navigation", auto: "Human Review", priority: "Critical" },
+          { title: "Pages and screens load within acceptable performance threshold", cat: "Performance", page: "Overview Page", auto: "Automated", priority: "High" },
+          { title: "Required form fields are validated before submission with inline errors", cat: "Validation", page: "Registration Page", auto: "Automated", priority: "Critical" },
+          { title: "Success and error toasts appear for key user actions", cat: "Notifications", page: "Dashboard", auto: "Human Review", priority: "Medium" },
+          { title: "Global navigation header is consistent across all application routes", cat: "Navigation", page: "Global Navigation", auto: "Human Review", priority: "Critical" },
+          { title: "User session tokens are invalidated upon manual logout", cat: "Security", page: "Auth Module", auto: "Automated", priority: "Critical" },
+          { title: "Responsive layout adjusts without overflow on mobile viewports", cat: "Responsive", page: "Overview Page", auto: "Human Review", priority: "High" },
+          { title: "Search query filters update results list dynamically", cat: "Search", page: "Search Page", auto: "Automated", priority: "Medium" },
+          { title: "Data table pagination and sorting maintain state across navigation", cat: "Tables", page: "Reports Page", auto: "Automated", priority: "Medium" },
+        ];
+
         const defaultPages = ["Login Page", "Dashboard", "Search Page", "Settings Page", "User Profile"];
         for (let i = 0; i < targetCount; i++) {
-          const isHuman = i % 3 === 0 || i % 4 === 0;
+          const tmpl = specificTemplates[i % specificTemplates.length];
+          const featName = detectedFeatures[i % Math.max(1, detectedFeatures.length)] || "Core Feature";
           const lvl = allowedLevels[i % allowedLevels.length];
-          const cat = allowedCategories[i % allowedCategories.length];
-          const pg = defaultPages[i % defaultPages.length];
+
+          const checkTitle = i < specificTemplates.length
+            ? tmpl.title
+            : `Verify ${featName} workflow executes cleanly on ${defaultPages[i % defaultPages.length]}`;
+
           generatedChecks.push({
             id: `gen-check-${i + 1}`,
-            title: `${cat} verification for ${pg}`,
+            title: checkTitle,
             level: lvl,
-            pageName: pg,
-            category: cat,
-            priority: i % 5 === 0 ? "Critical" : i % 2 === 0 ? "High" : "Medium",
+            pageName: tmpl.page || defaultPages[i % defaultPages.length],
+            category: tmpl.cat || "Usability and product experience",
+            priority: (tmpl.priority || "Medium") as QaCheck["priority"],
             status: "Not Started",
-            type: cat,
-            automation: isHuman ? "Human Review" : "Automated",
-            description: `Verify ${cat.toLowerCase()} behavior and responsive compliance on ${pg}.`,
-            expectedBehavior: `Expected ${cat.toLowerCase()} flow executes without errors.`,
+            type: tmpl.cat || "Functional",
+            automation: (tmpl.auto || "Automated") as QaCheck["automation"],
+            description: `Verify ${checkTitle.toLowerCase()} under expected operational state.`,
+            expectedBehavior: `Expected behavior executes without UI glitches or console errors.`,
             notes: `Perform automated assertion or human usability check.`,
           });
         }
@@ -507,8 +553,10 @@ IMPORTANT Rules:
         await useHumanReviewStore.getState().loadReviews(result.projectId);
         await useAiUnderstandingStore.getState().loadUnderstanding(result.projectId);
 
-        // Step animation
-        for (let s = 0; s <= GENERATION_STEPS.length; s++) {
+        if (progressTimer) clearInterval(progressTimer);
+
+        // Smoothly complete remaining steps
+        for (let s = currentStepIndex; s <= GENERATION_STEPS.length; s++) {
           if (isCancelled) return;
           setGenCompleted(s);
           await new Promise((r) => setTimeout(r, 200));
@@ -516,6 +564,7 @@ IMPORTANT Rules:
 
         router.push(`/qa-projects/${result.projectId}`);
       } catch (saveErr: any) {
+        if (progressTimer) clearInterval(progressTimer);
         console.error("Failed to save project to Supabase:", saveErr);
         showToast(`Failed to save project to database: ${saveErr?.message || "Error"}`, "error");
         setIsGenerating(false);
@@ -526,6 +575,7 @@ IMPORTANT Rules:
 
     return () => {
       isCancelled = true;
+      if (progressTimer) clearInterval(progressTimer);
     };
   }, [
     isGenerating,
