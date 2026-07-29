@@ -55,10 +55,20 @@ export const useFrameworkStore = create<FrameworkStore>((set, get) => ({
     set({ isLoading: true, currentProjectId: projectId });
     try {
       const checks = await qaFrameworkService.fetchQaFramework(projectId);
-      set({ checks, isLoading: false });
+      if (checks && checks.length > 0) {
+        set({ checks, isLoading: false });
+      } else {
+        set((state) => ({
+          checks: state.checks.length > 0 ? state.checks : initialQaChecks,
+          isLoading: false,
+        }));
+      }
     } catch (err) {
       console.error("loadChecks failed:", err);
-      set({ checks: [], isLoading: false });
+      set((state) => ({
+        checks: state.checks.length > 0 ? state.checks : initialQaChecks,
+        isLoading: false,
+      }));
     }
   },
 

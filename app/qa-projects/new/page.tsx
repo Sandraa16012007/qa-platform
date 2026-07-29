@@ -17,6 +17,9 @@ import Step3AiUnderstanding, { QA_COVERAGE_OPTIONS } from "./components/Step3AiU
 import Step4Generation, { GENERATION_STEPS } from "./components/Step4Generation";
 import { UploadedFile } from "./components/UploadCard";
 import { safeGenerateJSON } from "../../lib/gemini";
+import { useFrameworkStore } from "../../stores/useFrameworkStore";
+import { useHumanReviewStore } from "../../stores/useHumanReviewStore";
+import { QaCheck, HumanReviewItem } from "../../types";
 
 interface AiUnderstandingGenResult {
   summary: string;
@@ -200,9 +203,7 @@ export default function NewProjectWizard() {
       autoPrefsCount: number,
       humanCatsCount: number
     ) => {
-      const multiplier = depth === "quick" ? 15 : depth === "comprehensive" ? 40 : 25;
-      const baseCount = (featuresCount || 6) + (workflowsCount || 4);
-      const checks = Math.round((baseCount * multiplier) / 10) * 10;
+      const checks = depth === "quick" ? 30 : depth === "comprehensive" ? 60 : 45;
 
       const depthAutoBase = depth === "quick" ? 85 : depth === "comprehensive" ? 65 : 75;
       const autoTotal = autoPrefsCount + humanCatsCount || 1;
@@ -339,21 +340,193 @@ Return a single strict JSON object matching this structure:
     showToast,
   ]);
 
-  /* ── Generation timeline ── */
+  /* ── Gemini QA Framework Generation ── */
   useEffect(() => {
     if (!isGenerating) return;
-    const interval = setInterval(() => {
-      setGenCompleted((prev) => {
-        if (prev >= GENERATION_STEPS.length) {
-          clearInterval(interval);
-          setTimeout(() => router.push("/qa-projects/1"), 1200);
-          return prev;
-        }
-        return prev + 1;
+    let isCancelled = false;
+
+    const runFrameworkGeneration = async () => {
+      const targetCount = qaDepth === "quick" ? 30 : qaDepth === "comprehensive" ? 60 : 45;
+
+      const prompt = `
+Generate a tailored, production-grade QA Testing Framework for the following application context.
+
+Product Parameters:
+- Name: ${projectName || "Unnamed Project"}
+- Type: ${productType || "Web Application"}
+- Domain: ${domain || "Software"}
+- Description: ${description || "Application platform"}
+
+AI Product Understanding (User Reviewed):
+- Application Summary: ${aiSummary}
+- Target Users: ${detectedUsers.join(", ")}
+- Core Features: ${detectedFeatures.join(", ")}
+- Critical Workflows: ${criticalWorkflows.join(", ")}
+- Risk Areas: ${riskAreas.join(", ")}
+- Selected QA Coverage: ${qaCoverage.join(", ")}
+
+Testing Preferences:
+- Target QA Depth: ${qaDepth} (Must generate approximately ${targetCount} checks)
+- Quality Priorities: ${qualityPriorities.join(", ")}
+- Automation Preferences: ${automationPrefs.join(", ")}
+- Human Review Preferences: ${humanReviewCats.join(", ")}
+- Additional Instructions: ${additionalInstructions || "None"}
+
+Requirements:
+Return a single JSON object matching:
+{
+  "checks": [
+    {
+      "id": "check-1",
+      "level": "Product QA",
+      "pageName": "Dashboard",
+      "category": "Usability and product experience",
+      "title": "Check Title",
+      "description": "Verification description",
+      "expectedBehavior": "Expected result or acceptance criterion",
+      "notes": "Testing notes or spec guidance",
+      "automation": "Human Review",
+      "priority": "High",
+      "status": "Not Started",
+      "type": "Usability"
+    }
+  ]
+}
+Generate approximately ${targetCount} items evenly distributed across the 5 QA levels ("Product QA", "Page QA", "Component QA", "Feature QA", "Release QA").
+IMPORTANT Rules:
+1. "category" MUST be strictly one of: ["Navigation", "Forms", "Accessibility", "Visual Design", "Usability and product experience", "Responsive", "Performance", "Security", "Authentication", "Validation", "Error Handling", "Content", "Notifications", "Search", "Filters", "Dashboard", "Tables", "Media", "SEO"].
+2. "pageName": Infer realistic page names based on description and detected features (e.g. "Login Page", "Dashboard", "Search Page", "Settings Page", "Overview Page").
+3. "automation": Either "Automated" or "Human Review". Place special emphasis on setting UX, Usability, Visual Polish, Brand Tone, Microcopy, and Product Experience checks to "Human Review".
+4. "priority": One of ["Critical", "High", "Medium", "Low"].
+5. "status": "Not Started".
+`;
+
+      const res = await safeGenerateJSON<{ checks: Array<any> }>({
+        prompt,
+        systemInstruction:
+          "You are a Senior Principal QA Architect. Produce a detailed QA testing framework array in strict JSON format only.",
+        temperature: 0.2,
       });
-    }, 600);
-    return () => clearInterval(interval);
-  }, [isGenerating, router]);
+
+      if (isCancelled) return;
+
+      const allowedCategories = [
+        "Navigation", "Forms", "Accessibility", "Visual Design", "Usability and product experience",
+        "Responsive", "Performance", "Security", "Authentication", "Validation", "Error Handling",
+        "Content", "Notifications", "Search", "Filters", "Dashboard", "Tables", "Media", "SEO"
+      ];
+      const allowedLevels: Array<QaCheck["level"]> = [
+        "Product QA", "Page QA", "Component QA", "Feature QA", "Release QA"
+      ];
+
+      let generatedChecks: QaCheck[] = [];
+
+      if (res.success && res.data && Array.isArray(res.data.checks) && res.data.checks.length > 0) {
+        generatedChecks = res.data.checks.map((item, idx) => {
+          const isHuman =
+            item.automation === "Human Review" ||
+            item.category?.toLowerCase().includes("usability") ||
+            item.category?.toLowerCase().includes("visual") ||
+            item.category?.toLowerCase().includes("ux") ||
+            item.title?.toLowerCase().includes("experience");
+
+          return {
+            id: item.id || `gen-check-${idx + 1}`,
+            title: item.title || `Verification check ${idx + 1}`,
+            level: allowedLevels.includes(item.level) ? item.level : allowedLevels[idx % allowedLevels.length],
+            pageName: item.pageName || "Overview Page",
+            category: allowedCategories.includes(item.category) ? item.category : "Usability and product experience",
+            priority: (["Critical", "High", "Medium", "Low"].includes(item.priority) ? item.priority : "Medium") as QaCheck["priority"],
+            status: "Not Started",
+            type: item.type || item.category || "Functional",
+            automation: isHuman ? "Human Review" : "Automated",
+            description: item.description || "Verify expected feature behavior and state transitions.",
+            expectedBehavior: item.expectedBehavior || "Component behaves according to UX and functional specifications.",
+            notes: item.notes || "Execute testing spec or manual review.",
+          };
+        });
+      } else {
+        showToast("Using built-in QA framework template checks.", "warning");
+        const defaultPages = ["Login Page", "Dashboard", "Search Page", "Settings Page", "User Profile"];
+        for (let i = 0; i < targetCount; i++) {
+          const isHuman = i % 3 === 0 || i % 4 === 0;
+          const lvl = allowedLevels[i % allowedLevels.length];
+          const cat = allowedCategories[i % allowedCategories.length];
+          const pg = defaultPages[i % defaultPages.length];
+          generatedChecks.push({
+            id: `gen-check-${i + 1}`,
+            title: `${cat} verification for ${pg}`,
+            level: lvl,
+            pageName: pg,
+            category: cat,
+            priority: i % 5 === 0 ? "Critical" : i % 2 === 0 ? "High" : "Medium",
+            status: "Not Started",
+            type: cat,
+            automation: isHuman ? "Human Review" : "Automated",
+            description: `Verify ${cat.toLowerCase()} behavior and responsive compliance on ${pg}.`,
+            expectedBehavior: `Expected ${cat.toLowerCase()} flow executes without errors.`,
+            notes: `Perform automated assertion or human usability check.`,
+          });
+        }
+      }
+
+      // 1. Populate Framework Store
+      useFrameworkStore.setState({ checks: generatedChecks, currentProjectId: "1" });
+
+      // 2. Populate Human Reviews Store (only framework items where automation === "Human Review")
+      const humanReviews: HumanReviewItem[] = generatedChecks
+        .filter((c) => c.automation === "Human Review")
+        .map((c, idx) => ({
+          id: `hr-${c.id || idx}`,
+          checkId: c.id,
+          title: c.title,
+          level: c.level,
+          category: c.category,
+          priority: c.priority,
+          status: "Needs Review",
+          automation: "Human Review",
+          description: c.description,
+          expectedBehavior: c.expectedBehavior,
+          notes: c.notes,
+        }));
+
+      useHumanReviewStore.setState({ humanReviews, currentProjectId: "1" });
+
+      // Step animation
+      for (let s = 0; s <= GENERATION_STEPS.length; s++) {
+        if (isCancelled) return;
+        setGenCompleted(s);
+        await new Promise((r) => setTimeout(r, 200));
+      }
+
+      router.push("/qa-projects/1");
+    };
+
+    runFrameworkGeneration();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    isGenerating,
+    projectName,
+    productType,
+    domain,
+    description,
+    aiSummary,
+    detectedUsers,
+    detectedFeatures,
+    criticalWorkflows,
+    riskAreas,
+    qaCoverage,
+    qaDepth,
+    qualityPriorities,
+    automationPrefs,
+    humanReviewCats,
+    additionalInstructions,
+    router,
+    showToast,
+  ]);
 
   /* ── Save Draft ── */
   const handleSaveDraft = useCallback(() => {

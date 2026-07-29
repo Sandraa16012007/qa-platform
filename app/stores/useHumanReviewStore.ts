@@ -47,10 +47,20 @@ export const useHumanReviewStore = create<HumanReviewStore>((set, get) => ({
     set({ isLoading: true, currentProjectId: projectId });
     try {
       const humanReviews = await humanReviewsService.fetchHumanReviews(projectId);
-      set({ humanReviews, isLoading: false });
+      if (humanReviews && humanReviews.length > 0) {
+        set({ humanReviews, isLoading: false });
+      } else {
+        set((state) => ({
+          humanReviews: state.humanReviews.length > 0 ? state.humanReviews : initialHumanReviews,
+          isLoading: false,
+        }));
+      }
     } catch (err) {
       console.error("loadReviews failed:", err);
-      set({ humanReviews: [], isLoading: false });
+      set((state) => ({
+        humanReviews: state.humanReviews.length > 0 ? state.humanReviews : initialHumanReviews,
+        isLoading: false,
+      }));
     }
   },
 
