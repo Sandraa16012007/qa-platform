@@ -55,10 +55,11 @@ export const useFrameworkStore = create<FrameworkStore>((set, get) => ({
     set({ isLoading: true, currentProjectId: projectId });
     try {
       const checks = await qaFrameworkService.fetchQaFramework(projectId);
-      set({ checks: checks || [], isLoading: false });
+      const loaded = checks && checks.length > 0 ? checks : initialQaChecks;
+      set({ checks: loaded, isLoading: false });
     } catch (err: any) {
-      console.error("loadChecks failed:", err?.message || err);
-      set({ checks: [], isLoading: false });
+      console.warn("loadChecks failed, falling back to bundled data:", err?.message || err);
+      set({ checks: initialQaChecks, isLoading: false });
     }
   },
 

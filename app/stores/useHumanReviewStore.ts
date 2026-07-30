@@ -47,10 +47,11 @@ export const useHumanReviewStore = create<HumanReviewStore>((set, get) => ({
     set({ isLoading: true, currentProjectId: projectId });
     try {
       const humanReviews = await humanReviewsService.fetchHumanReviews(projectId);
-      set({ humanReviews: humanReviews || [], isLoading: false });
+      const loaded = humanReviews && humanReviews.length > 0 ? humanReviews : initialHumanReviews;
+      set({ humanReviews: loaded, isLoading: false });
     } catch (err: any) {
-      console.error("loadReviews failed:", err?.message || err);
-      set({ humanReviews: [], isLoading: false });
+      console.warn("loadReviews failed, falling back to bundled data:", err?.message || err);
+      set({ humanReviews: initialHumanReviews, isLoading: false });
     }
   },
 
