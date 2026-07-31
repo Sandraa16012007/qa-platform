@@ -152,6 +152,52 @@ export async function createProjectAfterGeneration(
   }
 }
 
+/**
+ * Recomputes the live Quality Score for a project — the same derivation used
+ * on the Project Overview page header (see `derivedQualityScore` in
+ * app/qa-projects/[id]/page.tsx): (automated checks that Passed) + (human
+ * reviews whose result was "Pass"), over the total number of evaluable
+ * items — and persists it to projects.quality_score. Returns the new value.
+ *
+ * This mirrors `recomputeHumanReviewProgress` in lib/services/humanReviews.ts
+ * so the QA Projects list page (which reads project.qualityScore straight
+ * from Supabase) always shows the same number as the live Overview page,
+ * instead of the stale value written once at project creation.
+ */
+export async function recomputeQualityScore(projectId: string): Promise<number> {
+  const { data: checkRows, error: checksError } = await supabase
+    .from("qa_framework")
+    .select("automation_type, status")
+    .eq("project_id", projectId);
+
+  if (checksError) throw checksError;
+
+  const { data: reviewRows, error: reviewsError } = await supabase
+    .from("human_reviews")
+    .select("review_result, qa_framework!inner(project_id)")
+    .eq("qa_framework.project_id", projectId);
+
+  if (reviewsError) throw reviewsError;
+
+  const checks = (checkRows as { automation_type: string; status: string }[]) || [];
+  const reviews = (reviewRows as { review_result: string | null }[]) || [];
+
+  const automatedChecks = checks.filter((c) => c.automation_type === "Automated");
+  const automatedPassed = automatedChecks.filter((c) => c.status === "Passed").length;
+  const humanPassed = reviews.filter((r) => r.review_result === "Pass").length;
+  const totalEvaluable = automatedChecks.length + reviews.length;
+  const percentage =
+    totalEvaluable === 0 ? 0 : Math.round(((automatedPassed + humanPassed) / totalEvaluable) * 100);
+
+  const { error: updateError } = await supabase
+    .from("projects")
+    .update({ quality_score: percentage })
+    .eq("id", projectId);
+  if (updateError) throw updateError;
+
+  return percentage;
+}
+
 /** Apply a partial update to a project row. */
 export async function updateProject(
   id: string,

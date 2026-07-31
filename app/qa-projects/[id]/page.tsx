@@ -379,7 +379,26 @@ function ProjectDashboardContent({ id }: { id: string }) {
 
   useEffect(() => {
     setCurrentScore(derivedQualityScore);
-  }, [derivedQualityScore]);
+
+    // Backfill: projects created before quality-score syncing existed (or
+    // that simply haven't had a check/review edited since) still have a
+    // stale `quality_score` of 0 in Supabase, even though this page can
+    // already derive the real value from loaded checks + human reviews.
+    // Persist it here too so the QA Projects list page (which reads
+    // project.qualityScore straight from the DB) reflects the same number
+    // without requiring the user to make an edit first.
+    if (project?.id && (checks.length > 0 || humanReviews.length > 0)) {
+      projectsService
+        .recomputeQualityScore(project.id)
+        .then((score) =>
+          useProjectStore.getState().patchProjectLocal(project.id, {
+            qualityScore: score,
+          })
+        )
+        .catch((err) => console.error("recomputeQualityScore failed:", err));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [derivedQualityScore, project?.id]);
 
   // Issues Tab & Page Notes State (global stores populated from Supabase)
   const issues = useIssuesStore((state) => state.issues);

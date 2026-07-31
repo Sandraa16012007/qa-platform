@@ -3,6 +3,7 @@ import { QaCheck } from "../types";
 import { initialQaChecks } from "../mockData";
 import * as qaFrameworkService from "../lib/services/qaFramework";
 import * as humanReviewsService from "../lib/services/humanReviews";
+import { recomputeQualityScore } from "../lib/services/projects";
 import { useHumanReviewStore } from "./useHumanReviewStore";
 import { useProjectStore } from "./useProjectStore";
 
@@ -33,6 +34,19 @@ interface FrameworkStore {
   deleteCheck: (id: string) => void;
   patchCheckLocal: (id: string, patch: Partial<QaCheck>) => void;
   resetFilters: () => void;
+}
+
+// Recomputes the live Quality Score (same derivation as the Project Overview
+// page) and patches it onto the shared project store so the QA Projects list
+// cards stay in sync whenever a check's status changes.
+function syncQualityScore(projectId: string) {
+  recomputeQualityScore(projectId)
+    .then((score) =>
+      useProjectStore.getState().patchProjectLocal(projectId, {
+        qualityScore: score,
+      })
+    )
+    .catch((err) => console.error("recomputeQualityScore failed:", err));
 }
 
 export const useFrameworkStore = create<FrameworkStore>((set, get) => ({
@@ -106,6 +120,7 @@ export const useFrameworkStore = create<FrameworkStore>((set, get) => ({
             })
           )
           .catch((err) => console.error("recomputeHumanReviewProgress failed:", err));
+        syncQualityScore(projectId);
       })
       .catch((err) => console.error("addCheck persist failed:", err));
   },
@@ -136,6 +151,7 @@ export const useFrameworkStore = create<FrameworkStore>((set, get) => ({
               })
             )
             .catch((err) => console.error("recomputeHumanReviewProgress failed:", err));
+          syncQualityScore(projectId);
         }
       })
       .catch((err) => console.error("updateCheck persist failed:", err));
@@ -165,6 +181,7 @@ export const useFrameworkStore = create<FrameworkStore>((set, get) => ({
           })
         )
         .catch((err) => console.error("recomputeHumanReviewProgress failed:", err));
+      syncQualityScore(projectId);
     }
   },
 

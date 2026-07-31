@@ -2,8 +2,22 @@ import { create } from "zustand";
 import { HumanReviewItem } from "../types";
 import { initialHumanReviews } from "../mockData";
 import * as humanReviewsService from "../lib/services/humanReviews";
+import { recomputeQualityScore } from "../lib/services/projects";
 import { useFrameworkStore } from "./useFrameworkStore";
 import { useProjectStore } from "./useProjectStore";
+
+// Recomputes the live Quality Score (same derivation as the Project Overview
+// page) and patches it onto the shared project store so the QA Projects list
+// cards stay in sync whenever a human review's result changes.
+function syncQualityScore(projectId: string) {
+  recomputeQualityScore(projectId)
+    .then((score) =>
+      useProjectStore.getState().patchProjectLocal(projectId, {
+        qualityScore: score,
+      })
+    )
+    .catch((err) => console.error("recomputeQualityScore failed:", err));
+}
 
 interface HumanReviewStore {
   humanReviews: HumanReviewItem[];
@@ -93,6 +107,7 @@ export const useHumanReviewStore = create<HumanReviewStore>((set, get) => ({
             })
           )
           .catch((err) => console.error("recomputeHumanReviewProgress failed:", err));
+        syncQualityScore(projectId);
       }
     }
   },
@@ -152,6 +167,7 @@ export const useHumanReviewStore = create<HumanReviewStore>((set, get) => ({
               })
             )
             .catch((err) => console.error("recomputeHumanReviewProgress failed:", err));
+          syncQualityScore(projectId);
         }
       })
       .catch((err) => console.error("saveReviewResult persist failed:", err));
