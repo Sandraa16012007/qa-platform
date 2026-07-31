@@ -1,36 +1,148 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# QA Platform
 
-## Getting Started
+An AI-powered Quality Assurance platform that generates structured, context-aware QA frameworks for web and mobile applications. Instead of manually creating QA plans, the platform uses **Google Gemini 2.5 Flash** to understand an application and automatically generate editable QA checklists across multiple QA levels.
 
-First, run the development server:
+Built as a Phase 1 prototype, the platform focuses on AI-assisted QA planning, human review workflows, and project management rather than automated test execution.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+---
+
+## Features
+
+- AI-generated application understanding
+- AI-generated QA frameworks
+- Multi-level QA planning
+  - Product QA
+  - Page QA
+  - Component QA
+  - Feature QA
+  - Release QA
+- Editable QA checklist items
+- Human review workflow
+- Issue tracking
+- Project notes
+- Persistent project storage with Supabase
+- Modern dashboard for managing QA projects
+
+---
+
+## Tech Stack
+
+### Frontend
+- Next.js 15
+- React
+- TypeScript
+- Tailwind CSS
+- Zustand
+
+### Backend
+- Supabase (PostgreSQL)
+
+### AI
+- Google Gemini 2.5 Flash
+
+---
+
+## Workflow
+
+1. Create a new QA project.
+2. Enter project details and QA preferences.
+3. Generate an AI Understanding of the application.
+4. Review and edit the AI-generated understanding.
+5. Generate a complete QA Framework.
+6. Review, edit, and manage QA checklist items.
+7. Perform Human Reviews.
+8. Track issues and project progress.
+
+---
+
+## Project Structure
+
+```
+src/
+├── app/
+├── components/
+├── stores/
+├── services/
+├── lib/
+├── hooks/
+├── types/
+└── data/
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Database
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The application uses **Supabase** with the following core tables:
 
-## Learn More
+- `projects`
+- `ai_understanding`
+- `qa_framework`
+- `human_reviews`
+- `issues`
+- `page_notes`
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Current Scope (Phase 1)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Implemented:
+- AI Understanding generation
+- QA Framework generation
+- Editable QA framework
+- Human review management
+- Issue tracking
+- Persistent storage
+- Project dashboard
 
-## Deploy on Vercel
+Not yet implemented:
+- Browser automation agents
+- Automated testing
+- Playwright/Selenium integration
+- GitHub/Figma/PRD context
+- Website crawling
+- Analytics
+- AI-generated reports
+- Quality Engineering (QE) workflows
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Running Locally
+
+```bash
+git clone <repository-url>
+
+cd qa-platform
+
+npm install
+
+npm run dev
+```
+
+Create a `.env.local` file with:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+GEMINI_API_KEY=...
+```
+
+---
+
+## Future Roadmap
+
+- Browser automation agents
+- Playwright integration
+- Selenium integration
+- File and repository context ingestion
+- Design analysis (Figma)
+- Automated testing
+- Quality analytics
+- CI/CD integration
+- AI-powered quality recommendations
+
+---
+
+## License
+
+This project was developed as part of a research and development initiative exploring AI-assisted Quality Assurance and Quality Engineering workflows.

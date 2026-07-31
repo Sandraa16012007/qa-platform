@@ -592,26 +592,30 @@ Rules for JSON fields:
       isCancelled = true;
       if (progressTimer) clearInterval(progressTimer);
     };
-  }, [
-    isGenerating,
-    projectName,
-    productType,
-    domain,
-    description,
-    aiSummary,
-    detectedUsers,
-    detectedFeatures,
-    criticalWorkflows,
-    riskAreas,
-    qaCoverage,
-    qaDepth,
-    qualityPriorities,
-    automationPrefs,
-    humanReviewCats,
-    additionalInstructions,
-    router,
-    showToast,
-  ]);
+    // NOTE: intentionally depending on `isGenerating` only.
+    //
+    // This effect must run exactly once per "Generate" click and stay alive
+    // for the entire duration of that run (Gemini call + Supabase writes +
+    // final store hydration + router.push). All other values it reads
+    // (projectName, aiSummary, qaDepth, etc.) are read from the closure at
+    // the moment the effect starts and don't need to re-trigger it.
+    //
+    // Previously this array included aiSummary/detectedUsers/detectedFeatures/
+    // criticalWorkflows/riskAreas/qaCoverage. Those are populated by the
+    // *same* zustand store (useAiUnderstandingStore) that this very run
+    // hydrates at the end via `useAiUnderstandingStore.getState().loadUnderstanding(...)`.
+    // That hydration call replaces the store's arrays with freshly-fetched
+    // (new-reference) data, which re-triggered this effect mid-flight. React
+    // then invoked the cleanup above on the *original* run, setting its
+    // `isCancelled` flag to true — so the subsequent `if (isCancelled) return;`
+    // check right before `router.push(...)` silently aborted the redirect,
+    // even though the project had already been fully written to Supabase.
+    // The `generationLockRef` guard stopped a second Gemini/Supabase run from
+    // starting, but did nothing to stop the first run's own promise chain
+    // from being cancelled by that spurious effect re-invocation. Restricting
+    // the dependency array fixes this at the source.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isGenerating]);
 
   /* ── Save Draft ── */
   const handleSaveDraft = useCallback(() => {
