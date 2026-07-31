@@ -4,6 +4,7 @@ import { Search, Info, Bell, User, Settings } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import { SIDEBAR_EXPANDED_WIDTH, SIDEBAR_COLLAPSED_WIDTH } from "./Sidebar";
+import VideoModal from "./VideoModal";
 
 interface HeaderContentProps {
   sidebarWidth?: number;
@@ -16,6 +17,7 @@ function HeaderContent({ sidebarWidth = SIDEBAR_EXPANDED_WIDTH }: HeaderContentP
   const query = searchParams.get("q") || "";
 
   const [localValue, setLocalValue] = useState(query);
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
 
   // Sync local input with URL search param changes
   useEffect(() => {
@@ -66,7 +68,11 @@ function HeaderContent({ sidebarWidth = SIDEBAR_EXPANDED_WIDTH }: HeaderContentP
 
       {/* Right actions */}
       <div className="flex items-center gap-4">
-        <button className="p-2 text-on-surface-variant hover:text-primary transition-colors cursor-pointer">
+        <button
+          onClick={() => setIsVideoModalOpen(true)}
+          aria-label="Watch product walkthrough"
+          className="p-2 text-on-surface-variant hover:text-primary transition-colors cursor-pointer"
+        >
           <Info size={20} strokeWidth={1.5} />
         </button>
         <button className="p-2 text-on-surface-variant hover:text-primary transition-colors relative cursor-pointer">
@@ -80,6 +86,13 @@ function HeaderContent({ sidebarWidth = SIDEBAR_EXPANDED_WIDTH }: HeaderContentP
           <User size={18} strokeWidth={1.5} className="text-primary" />
         </div>
       </div>
+
+      <VideoModal
+        isOpen={isVideoModalOpen}
+        onClose={() => setIsVideoModalOpen(false)}
+        videoSrc="/videos/product-demo.mp4"
+        title="Product Walkthrough"
+      />
     </header>
   );
 }
