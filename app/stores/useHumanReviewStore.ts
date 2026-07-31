@@ -47,11 +47,10 @@ export const useHumanReviewStore = create<HumanReviewStore>((set, get) => ({
     set({ isLoading: true, currentProjectId: projectId });
     try {
       const humanReviews = await humanReviewsService.fetchHumanReviews(projectId);
-      const loaded = humanReviews && humanReviews.length > 0 ? humanReviews : initialHumanReviews;
-      set({ humanReviews: loaded, isLoading: false });
+      set({ humanReviews: humanReviews || [], isLoading: false });
     } catch (err: any) {
-      console.warn("loadReviews failed, falling back to bundled data:", err?.message || err);
-      set({ humanReviews: initialHumanReviews, isLoading: false });
+      console.error("loadReviews failed:", err?.message || err);
+      set({ humanReviews: [], isLoading: false });
     }
   },
 
@@ -109,15 +108,15 @@ export const useHumanReviewStore = create<HumanReviewStore>((set, get) => ({
       humanReviews: state.humanReviews.map((item) =>
         item.id === id
           ? {
-              ...item,
-              status: computedStatus,
-              reviewResult: result,
-              rating,
-              notes,
-              screenshotUrl: screenshotUrl ?? null,
-              lastUpdated: "Just now",
-              reviewedBy: "Admin Engineer",
-            }
+            ...item,
+            status: computedStatus,
+            reviewResult: result,
+            rating,
+            notes,
+            screenshotUrl: screenshotUrl ?? null,
+            lastUpdated: "Just now",
+            reviewedBy: "Admin Engineer",
+          }
           : item
       ),
     }));
@@ -163,8 +162,8 @@ export const useHumanReviewStore = create<HumanReviewStore>((set, get) => ({
       humanReviews:
         typeof value === "function"
           ? (value as (prev: HumanReviewItem[]) => HumanReviewItem[])(
-              state.humanReviews
-            )
+            state.humanReviews
+          )
           : value,
     })),
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -145,6 +145,14 @@ export default function NewProjectWizard() {
 
   /* ── Step 4: Generation ── */
   const [genCompleted, setGenCompleted] = useState(0);
+  // Guards the generation effect below against firing more than once for a
+  // single "Generate" click. Without this, the effect's large dependency
+  // array (plus React re-running effects twice on mount in development)
+  // could kick off createProjectAfterGeneration() a second time before the
+  // first call finished, silently creating two duplicate projects in
+  // Supabase for the same wizard input. A ref (rather than state) is used
+  // so the lock survives re-renders without itself triggering one.
+  const generationLockRef = useRef(false);
 
   /* ── File upload handler ── */
   const handleFileUpload = useCallback(
@@ -345,6 +353,12 @@ Return a single strict JSON object matching this structure:
   /* ── Gemini QA Framework Generation ── */
   useEffect(() => {
     if (!isGenerating) return;
+    // Only one generation run is allowed per "Generate" click. If this
+    // effect fires again (dependency churn, dev-mode double-invoke, etc.)
+    // while a run is already in flight or has completed, skip it entirely.
+    if (generationLockRef.current) return;
+    generationLockRef.current = true;
+
     let isCancelled = false;
     let progressTimer: NodeJS.Timeout | null = null;
 
@@ -567,6 +581,7 @@ Rules for JSON fields:
         if (progressTimer) clearInterval(progressTimer);
         console.error("Failed to save project to Supabase:", saveErr);
         showToast(`Failed to save project to database: ${saveErr?.message || "Error"}`, "error");
+        generationLockRef.current = false;
         setIsGenerating(false);
       }
     };

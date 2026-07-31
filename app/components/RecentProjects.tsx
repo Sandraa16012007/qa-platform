@@ -7,6 +7,9 @@ import { useProjectStore } from "../stores/useProjectStore";
 
 export default function RecentProjects() {
   const projects = useProjectStore((state) => state.projects);
+  // Dashboard only surfaces a quick snapshot — the 3 most recently
+  // updated projects (list is already sorted newest-first by the store).
+  const recentProjects = projects.slice(0, 3);
 
   return (
     <motion.section
@@ -17,7 +20,7 @@ export default function RecentProjects() {
     >
       {/* Project cards grid — 3 columns */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {projects.map((project, idx) => (
+        {recentProjects.map((project, idx) => (
           <Link key={project.id} href={`/qa-projects/${project.id}`} className="block">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -50,13 +53,13 @@ export default function RecentProjects() {
                 </div>
                 <div className="text-right">
                   <div style={{ fontSize: 32 }} className="font-bold text-primary">
-                    {project.qualityScore}%
+                    {project.humanReviewProgress}%
                   </div>
                   <div
                     style={{ fontSize: 10, letterSpacing: "-0.04em" }}
                     className="font-semibold text-on-surface-variant uppercase"
                   >
-                    Avg Score
+                    Human Review
                   </div>
                 </div>
               </div>
@@ -65,7 +68,7 @@ export default function RecentProjects() {
               <div className="h-1 bg-surface-container-high w-full rounded-full overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
-                  animate={{ width: `${project.qualityScore}%` }}
+                  animate={{ width: `${project.humanReviewProgress}%` }}
                   transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
                   className="h-full bg-primary"
                 />

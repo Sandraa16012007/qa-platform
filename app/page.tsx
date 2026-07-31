@@ -46,10 +46,13 @@ export default function Home() {
           <HeroSection />
 
           {/* Main Content Grid — 12 columns */}
-          <div className="grid grid-cols-12 gap-5">
-            {/* Workflow (8 cols) */}
-            <div className="col-span-12 lg:col-span-8 space-y-4">
+          <div className="grid grid-cols-12 gap-5 items-start">
+            {/* Workflow + Recent Projects (8 cols) — kept in the same column
+                so Recent Projects flows directly under Workflow regardless
+                of how tall the Workspace sidebar column ends up being. */}
+            <div className="col-span-12 lg:col-span-8 space-y-6">
               <WorkflowSection />
+              <RecentProjects />
             </div>
 
             {/* Workspace Sidebar (4 cols) */}
@@ -57,9 +60,6 @@ export default function Home() {
               <MetricsPanel />
             </div>
           </div>
-
-          {/* Recent Projects */}
-          <RecentProjects />
         </div>
 
         {/* Footer */}

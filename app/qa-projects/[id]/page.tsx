@@ -153,11 +153,10 @@ function ProjectDashboardContent({ id }: { id: string }) {
 
   const sidebarWidth = sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH;
 
-  // Quality Score States
-  const [currentScore, setCurrentScore] = useState(project?.qualityScore ?? 0);
-  useEffect(() => {
-    if (project) setCurrentScore(project.qualityScore);
-  }, [project?.id]);
+  // Quality Score States — the live value is derived from real QA Framework
+  // + Human Review stats below (see `derivedQualityScore`), once `checks`
+  // and `humanReviews` are loaded from their stores.
+  const [currentScore, setCurrentScore] = useState(0);
   const [scoreAnimation, setScoreAnimation] = useState(false);
 
   // AI Understanding / Project Summary (global store — shared with the New Project wizard)
@@ -364,6 +363,24 @@ function ProjectDashboardContent({ id }: { id: string }) {
   const setHumanReviews = useHumanReviewStore((state) => state.setHumanReviews);
   const saveReviewResultInStore = useHumanReviewStore((state) => state.saveReviewResult);
 
+  // Live Quality Score — derived from actual QA Framework + Human Review
+  // results instead of the static project.qualityScore field, so it
+  // reflects real pass rates as checks get executed and reviews get
+  // completed. Combines: (automated checks that Passed) + (human reviews
+  // whose result was "Pass") over the total number of evaluable items.
+  const derivedQualityScore = useMemo(() => {
+    const automatedChecks = checks.filter((c) => c.automation === "Automated");
+    const automatedPassed = automatedChecks.filter((c) => c.status === "Passed").length;
+    const humanPassed = humanReviews.filter((r) => r.reviewResult === "Pass").length;
+    const totalEvaluable = automatedChecks.length + humanReviews.length;
+    if (totalEvaluable === 0) return 0;
+    return Math.round(((automatedPassed + humanPassed) / totalEvaluable) * 100);
+  }, [checks, humanReviews]);
+
+  useEffect(() => {
+    setCurrentScore(derivedQualityScore);
+  }, [derivedQualityScore]);
+
   // Issues Tab & Page Notes State (global stores populated from Supabase)
   const issues = useIssuesStore((state) => state.issues);
   const setIssues = useIssuesStore((state) => state.setIssues);
@@ -522,7 +539,7 @@ function ProjectDashboardContent({ id }: { id: string }) {
         const newScore = failedCount === 0 ? 98 : Math.max(72, 94 - failedCount * 3);
         const finalStatus = failedCount > 5 ? "Failed" : "Completed";
 
-        const scoreDiff = newScore - (project?.qualityScore ?? currentScore);
+        const scoreDiff = newScore - currentScore;
         const trendText = scoreDiff > 0 ? `↑ +${scoreDiff} Quality Score` : scoreDiff < 0 ? `↓ ${Math.abs(scoreDiff)} Quality Score` : "No Change";
         const trendType = scoreDiff > 0 ? "improvement" : scoreDiff < 0 ? "decline" : "neutral";
 

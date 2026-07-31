@@ -27,22 +27,22 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   loadError: null,
 
   // Fetches all projects from Supabase and replaces local state.
+  // Fetches all projects from Supabase and replaces local state.
   loadProjects: async () => {
     if (get().isLoading) return;
     set({ isLoading: true, loadError: null });
     try {
       const projects = await projectsService.fetchProjects();
-      const loadedProjects = projects && projects.length > 0 ? projects : allProjectsList;
       set((state) => ({
-        projects: loadedProjects,
+        projects: projects || [],
         isLoading: false,
         isLoaded: true,
-        selectedProjectId: state.selectedProjectId || loadedProjects[0]?.id || null,
+        selectedProjectId: state.selectedProjectId || projects[0]?.id || null,
       }));
     } catch (err: any) {
       console.error("loadProjects failed:", err);
       set({
-        projects: allProjectsList,
+        projects: [],
         isLoading: false,
         isLoaded: true,
         loadError: err?.message || "Failed to load projects",

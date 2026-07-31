@@ -20,7 +20,7 @@ import {
   ExternalLink,
   GitBranch,
 } from "lucide-react";
-import { Project, TestRun, ActivityItem, Toast, HumanReviewItem } from "../../types";
+import { Project, TestRun, ActivityItem, Toast, HumanReviewItem, QaCheck } from "../../types";
 import { useHumanReviewStore } from "../../../../stores/useHumanReviewStore";
 import { useAiUnderstandingStore } from "../../../../stores/useAiUnderstandingStore";
 import { useIssuesStore } from "../../../../stores/useIssuesStore";
@@ -79,6 +79,19 @@ export default function OverviewTab({
   ).length;
   const totalReviews = humanReviews.length;
   const hrProgress = totalReviews === 0 ? 0 : Math.round((doneCount / totalReviews) * 100);
+
+  // Dynamic QA Framework Coverage (checks per level)
+  const coverageLevels: { name: QaCheck["level"]; icon: typeof Globe }[] = [
+    { name: "Product QA", icon: Globe },
+    { name: "Page QA", icon: Layers },
+    { name: "Component QA", icon: Cpu },
+    { name: "Feature QA", icon: Sparkles },
+    { name: "Release QA", icon: CheckCircle2 },
+  ];
+  const coverage = coverageLevels.map((lvl) => ({
+    ...lvl,
+    count: checks.filter((c) => c.level === lvl.name).length,
+  }));
 
   // Dynamic QA Framework Progress (Human Items Only)
   const humanChecks = checks.filter((c) => c.automation === "Human Review");
@@ -206,13 +219,7 @@ export default function OverviewTab({
             QA Framework Coverage
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            {[
-              { name: "Product QA", count: 42, icon: Globe },
-              { name: "Page QA", count: 118, icon: Layers },
-              { name: "Component QA", count: 74, icon: Cpu },
-              { name: "Feature QA", count: 56, icon: Sparkles },
-              { name: "Release QA", count: 18, icon: CheckCircle2 },
-            ].map((cov) => {
+            {coverage.map((cov) => {
               const CovIcon = cov.icon;
               return (
                 <div

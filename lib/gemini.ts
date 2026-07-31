@@ -183,10 +183,24 @@ export async function generateJSON<T = unknown>(
     try {
       parsedData = JSON.parse(cleanedText);
     } catch (parseErr) {
-      throw new GeminiServiceError(
-        `Failed to parse Gemini response as JSON: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`,
-        "PARSING_ERROR"
-      );
+      // Gemini's JSON-mode output occasionally has a trailing comma before a
+      // closing `}`/`]` (the exact cause of V8's "Expected double-quoted
+      // property name in JSON" error) or "smart quotes" instead of straight
+      // ones. Try a lenient repair pass before giving up — this alone fixes
+      // the vast majority of otherwise-valid responses that fail strict
+      // JSON.parse.
+      try {
+        const repaired = cleanedText
+          .replace(/,(\s*[}\]])/g, "$1") // strip trailing commas
+          .replace(/[\u2018\u2019]/g, "'") // curly single quotes -> straight
+          .replace(/[\u201C\u201D]/g, '"'); // curly double quotes -> straight
+        parsedData = JSON.parse(repaired);
+      } catch {
+        throw new GeminiServiceError(
+          `Failed to parse Gemini response as JSON: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`,
+          "PARSING_ERROR"
+        );
+      }
     }
 
     if (validator && !validator(parsedData)) {
@@ -222,7 +236,7 @@ export async function safeGenerateJSON<T = unknown>(
     return { success: true, data };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    console.error("[Gemini Service Error]:", errorMsg);
+    console.warn("[Gemini Service Error - recovered via fallback]:", errorMsg);
     return {
       success: false,
       error: errorMsg,
