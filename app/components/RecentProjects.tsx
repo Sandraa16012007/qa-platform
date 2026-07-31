@@ -18,8 +18,8 @@ export default function RecentProjects() {
       transition={{ duration: 0.5, delay: 0.3, ease: "easeOut" }}
       className="space-y-4"
     >
-      {/* Project cards grid — 3 columns */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      {/* Project cards grid — 2 columns */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-5">
         {recentProjects.map((project, idx) => (
           <Link key={project.id} href={`/qa-projects/${project.id}`} className="block">
             <motion.div
