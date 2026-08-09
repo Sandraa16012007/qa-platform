@@ -22,6 +22,12 @@ import { useHumanReviewStore } from "../../stores/useHumanReviewStore";
 import { useProjectStore } from "../../stores/useProjectStore";
 import { createProjectAfterGeneration } from "../../lib/services/projects";
 import { QaCheck, HumanReviewItem, Project } from "../../types";
+import {
+  extractQuestionnaireContext,
+  mergeProjectContexts,
+  formatContextForPrompt,
+} from "@/lib/context-engine";
+
 
 interface AiUnderstandingGenResult {
   summary: string;
@@ -236,19 +242,32 @@ export default function NewProjectWizard() {
       const runAiAnalysis = async () => {
         setIsAnalyzing(true);
 
+        // Normalize questionnaire inputs via Phase 2 Context Engine
+        const manualContext = extractQuestionnaireContext({
+          projectName,
+          productType,
+          domain,
+          description,
+          websiteUrl,
+          qaDepth,
+          qualityPriorities,
+          automationPrefs,
+          humanReviewCats,
+          additionalInstructions,
+        });
+
+        // Merge normalized contexts (prioritizes PRD > Website > Manual > GitHub)
+        const projectContext = mergeProjectContexts({
+          manual: manualContext,
+        });
+
+        const contextBlock = formatContextForPrompt(projectContext);
+
         const prompt = `
 Analyze the following product parameters to generate a structured QA Product Understanding JSON.
 
 Product Context:
-- Project Name: ${projectName || "Unnamed Application"}
-- Product Type: ${productType || "Web Application"}
-- Domain: ${domain || "Software Service"}
-- Description: ${description || "Application for digital users"}
-- QA Depth: ${qaDepth}
-- Quality Priorities: ${qualityPriorities.join(", ") || "General Quality"}
-- Automation Preferences: ${automationPrefs.join(", ") || "Automated testing"}
-- Human Review Preferences: ${humanReviewCats.join(", ") || "Usability"}
-- Additional Instructions: ${additionalInstructions || "None"}
+${contextBlock}
 
 Return a single strict JSON object matching this structure:
 {
@@ -260,6 +279,7 @@ Return a single strict JSON object matching this structure:
   "qaCoverage": ["3-6 recommended coverage items chosen from: Product QA (High-level architecture & brand), Page QA (Per-page layout, specs & responsive), Component QA (Design system tokens & states), Feature QA (User workflows & state trees), Accessibility QA (WCAG 2.1 AA compliance), UX & Content QA (Tone, microcopy & usability)"]
 }
 `;
+
 
         const res = await safeGenerateJSON<AiUnderstandingGenResult>({
           prompt,
