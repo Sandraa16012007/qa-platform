@@ -25,17 +25,128 @@ export interface ManualContext {
 }
 
 /**
- * Website Crawling Context (Typed Placeholder for Future Expansion)
+ * Website Crawling Context Models (Phase 2.2 Website Source Ingestion)
  */
+export interface WebsiteHeading {
+  level: number;
+  text: string;
+}
+
+export interface WebsiteLink {
+  text: string;
+  href: string;
+  isInternal: boolean;
+}
+
+export interface WebsiteButton {
+  text: string;
+  type?: string;
+  ariaLabel?: string;
+  disabled?: boolean;
+}
+
+export interface WebsiteFormField {
+  name?: string;
+  type?: string;
+  placeholder?: string;
+  label?: string;
+  required?: boolean;
+  options?: string[];
+}
+
+export interface WebsiteForm {
+  id?: string;
+  action?: string;
+  method?: string;
+  fields: WebsiteFormField[];
+  submitButtonText?: string;
+}
+
+export interface WebsiteImage {
+  src?: string;
+  alt?: string;
+  title?: string;
+}
+
+export type DetectedComponentType =
+  | "search"
+  | "filter"
+  | "form"
+  | "table"
+  | "card"
+  | "navigation"
+  | "upload"
+  | "pagination"
+  | "auth"
+  | "comments"
+  | "modal"
+  | "tabs"
+  | "accordion"
+  | "pricing"
+  | "cart_checkout"
+  | "media_player"
+  | "dashboard_chart"
+  | "notification_alert"
+  | "code_snippet"
+  | "custom_feature"
+  | "other";
+
+export interface WebsiteDetectedComponent {
+  type: DetectedComponentType;
+  label: string;
+  description: string;
+  confidence: "high" | "medium";
+  selectorOrLocation?: string;
+}
+
+export interface WebsitePageStructure {
+  hasHeader: boolean;
+  hasFooter: boolean;
+  hasNav: boolean;
+  hasSidebar: boolean;
+  hasMain: boolean;
+}
+
+export interface WebsitePageContext {
+  url: string;
+  title?: string;
+  description?: string;
+  content?: string;
+  headings?: WebsiteHeading[];
+  links?: WebsiteLink[];
+  buttons?: WebsiteButton[];
+  forms?: WebsiteForm[];
+  images?: WebsiteImage[];
+  structure?: WebsitePageStructure;
+  detectedComponents?: WebsiteDetectedComponent[];
+  depth: number;
+  referrerUrl?: string;
+  statusCode?: number;
+  extractedAt: string;
+}
+
+export interface WebsiteNavigationEdge {
+  fromUrl: string;
+  toUrl: string;
+  anchorText?: string;
+}
+
+export interface WebsiteCrawlError {
+  url: string;
+  error: string;
+  statusCode?: number;
+  timestamp: string;
+}
+
 export interface WebsiteContext {
   url?: string;
   title?: string;
   description?: string;
-  pages?: Array<{
-    url: string;
-    title?: string;
-    content?: string;
-  }>;
+  domain?: string;
+  pages?: WebsitePageContext[];
+  navigationGraph?: WebsiteNavigationEdge[];
+  detectedFeatures?: string[];
+  crawlErrors?: WebsiteCrawlError[];
   extractedAt?: string;
   metadata?: Record<string, unknown>;
 }
