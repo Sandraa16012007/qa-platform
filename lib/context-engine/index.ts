@@ -6,7 +6,6 @@
 
 export * from "./types";
 export * from "./questionnaire";
-export * from "./website";
 export * from "./pdf";
 export * from "./image";
 export * from "./github";

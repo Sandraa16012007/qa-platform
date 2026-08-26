@@ -134,6 +134,125 @@ export function formatContextForPrompt(context: ProjectContext): string {
     }
   }
 
+  if (website) {
+    sections.push("\n--- Extracted Website Context (Live Crawl) ---");
+    if (website.title) sections.push(`Website Title: ${website.title}`);
+    if (website.domain) sections.push(`Website Domain: ${website.domain}`);
+    if (website.description) sections.push(`Website Meta/Summary: ${website.description}`);
+    
+    if (website.detectedFeatures && website.detectedFeatures.length > 0) {
+      sections.push(`Detected Application Features: ${website.detectedFeatures.join(", ")}`);
+    }
+
+    if (website.pages && website.pages.length > 0) {
+      sections.push(`Crawled Pages (${website.pages.length} total):`);
+      website.pages.forEach((page, idx) => {
+        const pageLines: string[] = [];
+        pageLines.push(`  [Page ${idx + 1}] ${page.title || "Untitled"} (${page.url}) [Depth: ${page.depth}, Status: ${page.statusCode || 200}]`);
+        
+        if (page.description) {
+          pageLines.push(`    Description: ${page.description}`);
+        }
+
+        // Structure landmarks
+        if (page.structure) {
+          const landmarks = Object.entries(page.structure)
+            .filter(([, v]) => v)
+            .map(([k]) => k.replace(/^has/, "").toLowerCase());
+          if (landmarks.length > 0) {
+            pageLines.push(`    Landmarks: ${landmarks.join(", ")}`);
+          }
+        }
+
+        // Headings with actual level and text
+        if (page.headings && page.headings.length > 0) {
+          const headingsStr = page.headings
+            .slice(0, 15)
+            .map((h) => `H${h.level}: "${h.text}"`)
+            .join(" | ");
+          pageLines.push(`    Headings: ${headingsStr}`);
+        }
+
+        // Buttons with actual visible text
+        if (page.buttons && page.buttons.length > 0) {
+          const buttonLabels = page.buttons
+            .slice(0, 20)
+            .map((b) => b.text || b.ariaLabel || "Button")
+            .filter(Boolean);
+          if (buttonLabels.length > 0) {
+            pageLines.push(`    Interactive Buttons: ${buttonLabels.map((l) => `[${l}]`).join(", ")}`);
+          }
+        }
+
+        // Forms and fields with names, types, labels, placeholders, options
+        if (page.forms && page.forms.length > 0) {
+          page.forms.forEach((form, fIdx) => {
+            const fieldDescs = form.fields.map((f) => {
+              const parts: string[] = [];
+              if (f.label) parts.push(`label="${f.label}"`);
+              if (f.name) parts.push(`name="${f.name}"`);
+              if (f.type) parts.push(`type="${f.type}"`);
+              if (f.placeholder) parts.push(`placeholder="${f.placeholder}"`);
+              if (f.options && f.options.length > 0) parts.push(`options=[${f.options.slice(0, 5).join(",")}]`);
+              return `{${parts.join(", ")}}`;
+            });
+            const submitInfo = form.submitButtonText ? ` (Submit: "${form.submitButtonText}")` : "";
+            pageLines.push(`    Form ${fIdx + 1}${submitInfo}: ${fieldDescs.join(", ")}`);
+          });
+        }
+
+        // Detected components & features with labels and descriptions
+        if (page.detectedComponents && page.detectedComponents.length > 0) {
+          const compStrs = page.detectedComponents.map((c) => {
+            return `${c.type} ("${c.label}": ${c.description})`;
+          });
+          pageLines.push(`    Detected UI Components: ${compStrs.join(" | ")}`);
+        }
+
+        // Navigation links
+        if (page.links && page.links.length > 0) {
+          const keyLinks = page.links
+            .filter((l) => l.text && l.text.trim())
+            .slice(0, 15)
+            .map((l) => `"${l.text}" -> ${l.href}`);
+          if (keyLinks.length > 0) {
+            pageLines.push(`    Key Links: ${keyLinks.join(" | ")}`);
+          }
+        }
+
+        // Images with alt text
+        if (page.images && page.images.length > 0) {
+          const alts = page.images
+            .filter((img) => img.alt && img.alt.trim())
+            .slice(0, 10)
+            .map((img) => `"${img.alt}"`);
+          if (alts.length > 0) {
+            pageLines.push(`    Images: ${alts.join(", ")}`);
+          }
+        }
+
+        sections.push(pageLines.join("\n"));
+      });
+    }
+
+    // Navigation relationships
+    if (website.navigationGraph && website.navigationGraph.length > 0) {
+      const graphSummary = website.navigationGraph
+        .slice(0, 15)
+        .map((edge) => `${edge.fromUrl} -> ${edge.toUrl}${edge.anchorText ? ` ("${edge.anchorText}")` : ""}`)
+        .join("\n  ");
+      sections.push(`Navigation Relationships:\n  ${graphSummary}`);
+    }
+
+    // Crawl errors if any
+    if (website.crawlErrors && website.crawlErrors.length > 0) {
+      const errSummary = website.crawlErrors
+        .map((err) => `${err.url}: ${err.error}`)
+        .join("; ");
+      sections.push(`Crawl Notices / Errors: ${errSummary}`);
+    }
+  }
+
   if (prd?.files && prd.files.length > 0) {
     sections.push(`Attached PRD Files: ${prd.files.map((f) => f.fileName).join(", ")}`);
   }

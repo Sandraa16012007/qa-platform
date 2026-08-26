@@ -26,7 +26,9 @@ import {
   extractQuestionnaireContext,
   mergeProjectContexts,
   formatContextForPrompt,
+  WebsiteContext,
 } from "@/lib/context-engine";
+import { WebsiteExtractionStatus } from "./components/Step0Basics";
 
 
 interface AiUnderstandingGenResult {
@@ -79,6 +81,10 @@ export default function NewProjectWizard() {
   const [description, setDescription] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [step0Errors, setStep0Errors] = useState<Record<string, boolean>>({});
+  const [websiteExtractionStatus, setWebsiteExtractionStatus] = useState<WebsiteExtractionStatus>("idle");
+  const [websiteExtractionError, setWebsiteExtractionError] = useState<string | null>(null);
+  const [extractedWebsiteContext, setExtractedWebsiteContext] = useState<WebsiteContext | null>(null);
+  const websiteCacheRef = useRef<Map<string, WebsiteContext>>(new Map());
 
   /* ── Step 1: Context & Assets ── */
   const [uploadedFiles, setUploadedFiles] = useState<Record<string, UploadedFile[]>>({
@@ -198,13 +204,72 @@ export default function NewProjectWizard() {
   }, [projectName, productType, domain, description]);
 
   /* ── Navigation ── */
-  const goNext = useCallback(() => {
-    if (currentStep === 0 && !validateStep0()) {
-      showToast("Please fill in all required fields", "error");
-      return;
+  const goNext = useCallback(async () => {
+    if (currentStep === 0) {
+      if (!validateStep0()) {
+        showToast("Please fill in all required fields", "error");
+        return;
+      }
+
+      const trimmedUrl = websiteUrl.trim();
+      if (trimmedUrl) {
+        // If already cached for this exact URL, reuse context without re-crawling
+        if (websiteCacheRef.current.has(trimmedUrl)) {
+          const cached = websiteCacheRef.current.get(trimmedUrl)!;
+          setExtractedWebsiteContext(cached);
+          setWebsiteExtractionStatus("completed");
+          setWebsiteExtractionError(null);
+          goWizardNext();
+          return;
+        }
+
+        // Run website context extraction via server Playwright API route
+        setWebsiteExtractionStatus("extracting");
+        setWebsiteExtractionError(null);
+
+        try {
+          const res = await fetch("/api/context/website", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              url: trimmedUrl,
+              maxPages: 10,
+              maxDepth: 2,
+              timeoutMs: 15000,
+            }),
+          });
+          const json = await res.json();
+          if (json.success && json.data) {
+            websiteCacheRef.current.set(trimmedUrl, json.data);
+            setExtractedWebsiteContext(json.data);
+            setWebsiteExtractionStatus("completed");
+            setWebsiteExtractionError(null);
+            showToast("Website context extracted successfully", "success");
+          } else {
+            const errMsg = json.error || "Unable to extract website context.";
+            setExtractedWebsiteContext(null);
+            setWebsiteExtractionStatus("failed");
+            setWebsiteExtractionError(errMsg);
+            showToast(`Website notice: ${errMsg}. Proceeding with manual context.`, "warning");
+          }
+        } catch (err: unknown) {
+          const errMsg = err instanceof Error ? err.message : "Network error during website extraction";
+          setExtractedWebsiteContext(null);
+          setWebsiteExtractionStatus("failed");
+          setWebsiteExtractionError(errMsg);
+          showToast(`Website notice: ${errMsg}. Proceeding with manual context.`, "warning");
+        } finally {
+          goWizardNext();
+        }
+        return;
+      } else {
+        setExtractedWebsiteContext(null);
+        setWebsiteExtractionStatus("idle");
+        setWebsiteExtractionError(null);
+      }
     }
     goWizardNext();
-  }, [currentStep, validateStep0, showToast, goWizardNext]);
+  }, [currentStep, validateStep0, websiteUrl, showToast, goWizardNext]);
 
   const goPrev = useCallback(() => {
     goWizardPrev();
@@ -259,6 +324,7 @@ export default function NewProjectWizard() {
         // Merge normalized contexts (prioritizes PRD > Website > Manual > GitHub)
         const projectContext = mergeProjectContexts({
           manual: manualContext,
+          website: extractedWebsiteContext || undefined,
         });
 
         const contextBlock = formatContextForPrompt(projectContext);
@@ -359,6 +425,7 @@ Return a single strict JSON object matching this structure:
     automationPrefs,
     humanReviewCats,
     additionalInstructions,
+    extractedWebsiteContext,
     setIsAnalyzing,
     setAiSummary,
     setDetectedUsers,
@@ -773,8 +840,18 @@ Rules for JSON fields:
                     description={description}
                     setDescription={setDescription}
                     websiteUrl={websiteUrl}
-                    setWebsiteUrl={setWebsiteUrl}
+                    setWebsiteUrl={(val) => {
+                      setWebsiteUrl(val);
+                      // Reset extraction status when URL changes
+                      if (websiteExtractionStatus !== "idle") {
+                        setWebsiteExtractionStatus("idle");
+                        setWebsiteExtractionError(null);
+                      }
+                    }}
                     step0Errors={step0Errors}
+                    extractionStatus={websiteExtractionStatus}
+                    extractionError={websiteExtractionError}
+                    pagesCrawled={extractedWebsiteContext?.pages?.length || 0}
                     goNext={goNext}
                   />
                 </motion.div>
@@ -861,6 +938,11 @@ Rules for JSON fields:
                     estimatedChecks={estimatedChecks}
                     estimatedAutomation={estimatedAutomation}
                     estimatedHumanReview={estimatedHumanReview}
+                    sourcesMeta={{
+                      hasWebsite: Boolean(extractedWebsiteContext),
+                      websitePages: extractedWebsiteContext?.pages?.length || 0,
+                      websiteUrl,
+                    }}
                     goPrev={goPrev}
                     handleGenerate={handleGenerate}
                   />

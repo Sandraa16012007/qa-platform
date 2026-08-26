@@ -1,7 +1,5 @@
-"use client";
-
-import { motion } from "framer-motion";
-import { ArrowRight, Info } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowRight, Info, Loader2, CheckCircle2, AlertTriangle, Globe } from "lucide-react";
 
 const PRODUCT_TYPES = [
   "Web App",
@@ -24,6 +22,8 @@ const DOMAINS = [
   "Other",
 ];
 
+export type WebsiteExtractionStatus = "idle" | "extracting" | "completed" | "failed";
+
 interface Step0BasicsProps {
   projectName: string;
   setProjectName: (val: string) => void;
@@ -36,6 +36,9 @@ interface Step0BasicsProps {
   websiteUrl: string;
   setWebsiteUrl: (val: string) => void;
   step0Errors: Record<string, boolean>;
+  extractionStatus?: WebsiteExtractionStatus;
+  extractionError?: string | null;
+  pagesCrawled?: number;
   goNext: () => void;
 }
 
@@ -51,8 +54,13 @@ export default function Step0Basics({
   websiteUrl,
   setWebsiteUrl,
   step0Errors,
+  extractionStatus = "idle",
+  extractionError = null,
+  pagesCrawled = 0,
   goNext,
 }: Step0BasicsProps) {
+  const isExtracting = extractionStatus === "extracting";
+
   return (
     <div className="space-y-4">
       <div>
@@ -75,10 +83,11 @@ export default function Step0Basics({
             type="text"
             placeholder="e.g. CreativeHub, LearnPro..."
             value={projectName}
+            disabled={isExtracting}
             onChange={(e) => setProjectName(e.target.value)}
             className={`w-full bg-surface-container-low border rounded-lg text-xs text-on-surface px-3 py-2.5 focus:outline-none focus:border-primary font-medium ${
               step0Errors.projectName ? "border-magenta" : "border-outline"
-            }`}
+            } ${isExtracting ? "opacity-60 cursor-not-allowed" : ""}`}
           />
         </div>
 
@@ -92,10 +101,11 @@ export default function Step0Basics({
           </label>
           <select
             value={productType}
+            disabled={isExtracting}
             onChange={(e) => setProductType(e.target.value)}
             className={`w-full bg-surface-container-low border rounded-lg text-xs text-on-surface px-3 py-2.5 focus:outline-none focus:border-primary font-medium cursor-pointer ${
               step0Errors.productType ? "border-magenta" : "border-outline"
-            }`}
+            } ${isExtracting ? "opacity-60 cursor-not-allowed" : ""}`}
           >
             <option value="">Select product type...</option>
             {PRODUCT_TYPES.map((t) => (
@@ -116,10 +126,11 @@ export default function Step0Basics({
           </label>
           <select
             value={domain}
+            disabled={isExtracting}
             onChange={(e) => setDomain(e.target.value)}
             className={`w-full bg-surface-container-low border rounded-lg text-xs text-on-surface px-3 py-2.5 focus:outline-none focus:border-primary font-medium cursor-pointer ${
               step0Errors.domain ? "border-magenta" : "border-outline"
-            }`}
+            } ${isExtracting ? "opacity-60 cursor-not-allowed" : ""}`}
           >
             <option value="">Select domain...</option>
             {DOMAINS.map((d) => (
@@ -142,37 +153,117 @@ export default function Step0Basics({
             rows={3}
             placeholder="Briefly describe what your app does, primary users, and key value proposition..."
             value={description}
+            disabled={isExtracting}
             onChange={(e) => setDescription(e.target.value)}
             className={`w-full bg-surface-container-low border rounded-lg text-xs text-on-surface p-3 focus:outline-none focus:border-primary resize-none font-medium ${
               step0Errors.description ? "border-magenta" : "border-outline"
-            }`}
+            } ${isExtracting ? "opacity-60 cursor-not-allowed" : ""}`}
           />
         </div>
 
         {/* Website URL (optional) */}
         <div className="space-y-1 md:col-span-2">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono">
-            Website or Staging URL <span className="text-text-muted font-normal">(Optional)</span>
+          <label className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono flex items-center justify-between">
+            <span>Website or Staging URL <span className="text-text-muted font-normal">(Optional)</span></span>
+            {websiteUrl.trim() && (
+              <span className="text-[9px] text-text-muted font-normal">
+                Live pages, forms & features will be extracted via Playwright
+              </span>
+            )}
           </label>
-          <input
-            type="url"
-            placeholder="https://staging.example.com"
-            value={websiteUrl}
-            onChange={(e) => setWebsiteUrl(e.target.value)}
-            className="w-full bg-surface-container-low border border-outline rounded-lg text-xs text-on-surface px-3 py-2.5 focus:outline-none focus:border-primary font-medium"
-          />
+          <div className="relative">
+            <input
+              type="url"
+              placeholder="https://staging.example.com"
+              value={websiteUrl}
+              disabled={isExtracting}
+              onChange={(e) => setWebsiteUrl(e.target.value)}
+              className={`w-full bg-surface-container-low border rounded-lg text-xs text-on-surface px-3 py-2.5 focus:outline-none focus:border-primary font-medium ${
+                isExtracting ? "opacity-60 cursor-not-allowed" : "border-outline"
+              }`}
+            />
+          </div>
+
+          {/* Website Extraction State Feedback */}
+          <AnimatePresence>
+            {isExtracting && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-2 p-3 bg-surface-container border border-primary/30 rounded-lg flex items-center gap-3 overflow-hidden"
+              >
+                <Loader2 size={16} className="text-primary animate-spin flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-primary">
+                    Crawling & extracting website context...
+                  </p>
+                  <p className="text-[10px] text-on-surface-variant truncate">
+                    Analyzing pages, navigation, interactive buttons, forms and features via Playwright
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
+            {!isExtracting && extractionStatus === "completed" && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-2 p-2.5 bg-cyan-dim border border-cyan/30 rounded-lg flex items-center gap-2.5 overflow-hidden"
+              >
+                <CheckCircle2 size={15} className="text-primary flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-primary">
+                    Website context extracted ({pagesCrawled} {pagesCrawled === 1 ? "page" : "pages"} crawled)
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
+            {!isExtracting && extractionStatus === "failed" && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-2 p-2.5 bg-yellow-dim border border-yellow/30 rounded-lg flex items-start gap-2.5 overflow-hidden"
+              >
+                <AlertTriangle size={15} className="text-yellow flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-yellow">
+                    Website extraction failed: {extractionError || "Could not access URL"}.
+                  </p>
+                  <p className="text-[10px] text-on-surface-variant mt-0.5">
+                    Proceeding with manual questionnaire context without interruption.
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
       <div className="flex justify-end pt-3">
         <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+          whileHover={!isExtracting ? { scale: 1.02 } : {}}
+          whileTap={!isExtracting ? { scale: 0.98 } : {}}
           onClick={goNext}
-          className="bg-primary text-on-primary-container px-5 py-2.5 text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2 hover:opacity-90 transition-all rounded-lg cursor-pointer"
+          disabled={isExtracting}
+          className={`bg-primary text-on-primary-container px-5 py-2.5 text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2 hover:opacity-90 transition-all rounded-lg ${
+            isExtracting ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
+          }`}
         >
-          <span>Next: Context & Assets</span>
-          <ArrowRight size={14} strokeWidth={2} />
+          {isExtracting ? (
+            <>
+              <Loader2 size={14} className="animate-spin" />
+              <span>Extracting Website...</span>
+            </>
+          ) : (
+            <>
+              <span>Next: Context & Assets</span>
+              <ArrowRight size={14} strokeWidth={2} />
+            </>
+          )}
         </motion.button>
       </div>
     </div>

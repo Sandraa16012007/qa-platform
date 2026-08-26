@@ -32,6 +32,11 @@ interface Step3AiUnderstandingProps {
   estimatedChecks?: number;
   estimatedAutomation?: number;
   estimatedHumanReview?: number;
+  sourcesMeta?: {
+    hasWebsite?: boolean;
+    websitePages?: number;
+    websiteUrl?: string;
+  };
   goPrev: () => void;
   handleGenerate: () => void;
 }
@@ -55,6 +60,7 @@ export default function Step3AiUnderstanding({
   estimatedChecks = 450,
   estimatedAutomation = 78,
   estimatedHumanReview = 22,
+  sourcesMeta,
   goPrev,
   handleGenerate,
 }: Step3AiUnderstandingProps) {
@@ -71,17 +77,33 @@ export default function Step3AiUnderstanding({
           <div className="flex flex-col items-center gap-3">
             <Sparkles className="w-8 h-8 text-primary animate-pulse" />
             <p className="font-mono text-xs text-on-surface-variant uppercase tracking-widest">
-              Analyzing your product...
+              Synthesizing unified context & product analysis...
             </p>
           </div>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto space-y-4 pr-1">
-          <div>
-            <h2 className="text-base font-bold text-on-surface">AI Product Understanding</h2>
-            <p className="text-xs text-on-surface-variant mt-0.5">
-              Based on the information provided, we&apos;ve analyzed your product and inferred the following. Review and edit anything before generating your QA framework.
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h2 className="text-base font-bold text-on-surface">AI Product Understanding</h2>
+              <p className="text-xs text-on-surface-variant mt-0.5">
+                Based on the information provided, we&apos;ve analyzed your product and inferred the following. Review and edit anything before generating your QA framework.
+              </p>
+            </div>
+            {sourcesMeta && (
+              <div className="flex-shrink-0">
+                {sourcesMeta.hasWebsite ? (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono font-medium bg-cyan-dim border border-cyan/30 text-primary">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
+                    Sources: Questionnaire + Website ({sourcesMeta.websitePages || 0} pages)
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono font-medium bg-surface-container border border-outline text-on-surface-variant">
+                    Source: Manual Questionnaire
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
