@@ -152,21 +152,63 @@ export interface WebsiteContext {
 }
 
 /**
- * PRD Document Context (Typed Placeholder for Future Expansion)
+ * PRD Document Context (Phase 2.3.1 Active Document Ingestion)
  */
+export type DocumentExtractionStatus = "success" | "empty" | "truncated" | "error";
+
+export interface PrdFileContext {
+  fileName: string;
+  fileSize?: number;
+  fileType?: "pdf" | "docx" | "md" | string;
+  content?: string;
+  extractedText?: string;
+  pageCount?: number;
+  characterCount?: number;
+  wordCount?: number;
+  status: DocumentExtractionStatus;
+  error?: string;
+  extractedAt: string;
+}
+
 export interface PrdContext {
-  files?: Array<{
-    fileName: string;
-    fileSize?: number;
-    fileType?: string;
-    content?: string;
-    pageCount?: number;
-  }>;
+  files: PrdFileContext[];
+  totalFiles: number;
+  totalCharacters: number;
+  totalWords: number;
   extractedText?: string;
   sections?: Array<{
     title?: string;
     content?: string;
   }>;
+  metadata?: Record<string, unknown>;
+  extractedAt?: string;
+}
+
+/**
+ * Additional Specification Context (API Specs, Swagger, Postman, YAML, JSON, PDF)
+ */
+export interface AdditionalFileContext {
+  fileName: string;
+  fileSize?: number;
+  fileType?: "pdf" | "json" | "yaml" | "yml" | string;
+  format: "pdf" | "json" | "yaml" | "unsupported";
+  extractedText?: string;
+  parsedData?: unknown;
+  pageCount?: number;
+  characterCount?: number;
+  wordCount?: number;
+  itemCount?: number;
+  status: DocumentExtractionStatus;
+  error?: string;
+  extractedAt: string;
+}
+
+export interface AdditionalContext {
+  files: AdditionalFileContext[];
+  totalFiles: number;
+  totalCharacters: number;
+  totalWords: number;
+  extractedText?: string;
   metadata?: Record<string, unknown>;
   extractedAt?: string;
 }
@@ -207,11 +249,12 @@ export interface GithubContext {
  * Source Attribution & Metadata
  */
 export interface ContextSourceMeta {
-  activeSources: Array<"prd" | "website" | "manual" | "github" | "design">;
+  activeSources: Array<"prd" | "additional" | "website" | "manual" | "github" | "design">;
   primaryDescriptionSource: "prd" | "website" | "manual" | "github" | "none";
   mergedAt: string;
   sourceCounts: {
     prdFiles: number;
+    additionalFiles: number;
     websitePages: number;
     designFiles: number;
     hasGithub: boolean;
@@ -226,6 +269,7 @@ export interface ProjectContext {
   manual?: ManualContext;
   website?: WebsiteContext;
   prd?: PrdContext;
+  additional?: AdditionalContext;
   design?: DesignContext;
   github?: GithubContext;
   metadata: ContextSourceMeta;
@@ -265,6 +309,7 @@ export interface ContextSourcesInput {
   manual?: ManualContext | null;
   website?: WebsiteContext | null;
   prd?: PrdContext | null;
+  additional?: AdditionalContext | null;
   design?: DesignContext | null;
   github?: GithubContext | null;
 }

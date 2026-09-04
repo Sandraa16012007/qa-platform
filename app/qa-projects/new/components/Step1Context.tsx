@@ -6,6 +6,8 @@ import UploadCard, { UploadedFile } from "./UploadCard";
 
 interface Step1ContextProps {
   uploadedFiles: Record<string, UploadedFile[]>;
+  isExtractingPrd?: boolean;
+  isExtractingAdditional?: boolean;
   handleFileUpload: (cat: string) => (files: FileList) => void;
   handleFileRemove: (cat: string) => (name: string) => void;
   githubUrl: string;
@@ -16,6 +18,8 @@ interface Step1ContextProps {
 
 export default function Step1Context({
   uploadedFiles,
+  isExtractingPrd = false,
+  isExtractingAdditional = false,
   handleFileUpload,
   handleFileRemove,
   githubUrl,
@@ -39,7 +43,9 @@ export default function Step1Context({
             title="Product Requirements (PRD)"
             description="PDF, DOCX, Markdown"
             accepts="PDF / DOCX / MD"
+            acceptFileTypes=".pdf,.docx,.md,.markdown,.txt"
             files={uploadedFiles.prd}
+            isExtracting={isExtractingPrd}
             onUpload={handleFileUpload("prd")}
             onRemove={handleFileRemove("prd")}
           />
@@ -49,6 +55,7 @@ export default function Step1Context({
             title="Design Files"
             description="Figma export, PDF, Images, ZIP"
             accepts="Figma / PDF / IMG / ZIP"
+            acceptFileTypes=".fig,.pdf,.png,.jpg,.jpeg,.zip,.svg"
             files={uploadedFiles.design}
             onUpload={handleFileUpload("design")}
             onRemove={handleFileRemove("design")}
@@ -80,7 +87,9 @@ export default function Step1Context({
             title="Additional Specification Assets"
             description="API Specs, Swagger, Postman"
             accepts="JSON / YAML / PDF"
+            acceptFileTypes=".pdf,.json,.yaml,.yml"
             files={uploadedFiles.additional}
+            isExtracting={isExtractingAdditional}
             onUpload={handleFileUpload("additional")}
             onRemove={handleFileRemove("additional")}
           />

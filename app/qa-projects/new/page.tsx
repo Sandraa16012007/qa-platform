@@ -27,6 +27,8 @@ import {
   mergeProjectContexts,
   formatContextForPrompt,
   WebsiteContext,
+  PrdContext,
+  AdditionalContext,
 } from "@/lib/context-engine";
 import { WebsiteExtractionStatus } from "./components/Step0Basics";
 
@@ -93,6 +95,10 @@ export default function NewProjectWizard() {
     additional: [],
   });
   const [githubUrl, setGithubUrl] = useState("");
+  const [prdContext, setPrdContext] = useState<PrdContext | null>(null);
+  const [additionalContext, setAdditionalContext] = useState<AdditionalContext | null>(null);
+  const [isExtractingPrd, setIsExtractingPrd] = useState(false);
+  const [isExtractingAdditional, setIsExtractingAdditional] = useState(false);
 
   /* ── Step 2: QA Preferences ── */
   const [qaDepth, setQaDepth] = useState<"quick" | "balanced" | "comprehensive">("balanced");
@@ -168,26 +174,229 @@ export default function NewProjectWizard() {
 
   /* ── File upload handler ── */
   const handleFileUpload = useCallback(
-    (category: string) => (fileList: FileList) => {
-      const newFiles: UploadedFile[] = Array.from(fileList).map((f) => ({
-        name: f.name,
-        size: f.size,
-        category,
-      }));
-      setUploadedFiles((prev) => ({
-        ...prev,
-        [category]: [...(prev[category] || []), ...newFiles],
-      }));
+    (category: string) => async (fileList: FileList) => {
+      const filesArray = Array.from(fileList);
+      if (filesArray.length === 0) return;
+
+      if (category === "prd" || category === "additional") {
+        const isPrd = category === "prd";
+        if (isPrd) setIsExtractingPrd(true);
+        else setIsExtractingAdditional(true);
+
+        const placeholderFiles: UploadedFile[] = filesArray.map((f) => ({
+          name: f.name,
+          size: f.size,
+          category,
+          status: "extracting",
+        }));
+
+        setUploadedFiles((prev) => ({
+          ...prev,
+          [category]: [
+            ...(prev[category] || []).filter(
+              (p) => !filesArray.some((f) => f.name === p.name)
+            ),
+            ...placeholderFiles,
+          ],
+        }));
+
+        try {
+          const formData = new FormData();
+          formData.append("category", category);
+          filesArray.forEach((f) => formData.append("files", f));
+
+          const res = await fetch("/api/context/documents", {
+            method: "POST",
+            body: formData,
+          });
+
+          const json = await res.json();
+          if (json.success && json.data) {
+            if (isPrd) {
+              const newPrdData = json.data as PrdContext;
+              setPrdContext((prevPrd) => {
+                const existingFiles = (prevPrd?.files || []).filter(
+                  (f) => !newPrdData.files.some((nf) => nf.fileName === f.fileName)
+                );
+                const mergedFiles = [...existingFiles, ...newPrdData.files];
+                const totalChars = mergedFiles.reduce((sum, f) => sum + (f.characterCount || 0), 0);
+                const totalW = mergedFiles.reduce((sum, f) => sum + (f.wordCount || 0), 0);
+                const validTexts = mergedFiles
+                  .filter((f) => f.status === "success" || f.status === "truncated")
+                  .map((f) => `### Source PRD File: ${f.fileName}\n${f.extractedText || ""}`);
+                return {
+                  files: mergedFiles,
+                  totalFiles: mergedFiles.length,
+                  totalCharacters: totalChars,
+                  totalWords: totalW,
+                  extractedText: validTexts.join("\n\n---\n\n"),
+                  extractedAt: new Date().toISOString(),
+                };
+              });
+
+              setUploadedFiles((prev) => {
+                const currentList = prev[category] || [];
+                const updatedList = currentList.map((f) => {
+                  const extracted = newPrdData.files.find((ef) => ef.fileName === f.name);
+                  if (extracted) {
+                    return {
+                      ...f,
+                      status: extracted.status,
+                      pageCount: extracted.pageCount,
+                      wordCount: extracted.wordCount,
+                      characterCount: extracted.characterCount,
+                      error: extracted.error,
+                    };
+                  }
+                  return f;
+                });
+                return { ...prev, [category]: updatedList };
+              });
+
+              const hasErrors = newPrdData.files.some((f) => f.status === "error");
+              if (hasErrors) {
+                showToast("Some PRD documents could not be parsed", "warning");
+              } else {
+                showToast("PRD document context extracted", "success");
+              }
+            } else {
+              const newAddlData = json.data as AdditionalContext;
+              setAdditionalContext((prevAddl) => {
+                const existingFiles = (prevAddl?.files || []).filter(
+                  (f) => !newAddlData.files.some((nf) => nf.fileName === f.fileName)
+                );
+                const mergedFiles = [...existingFiles, ...newAddlData.files];
+                const totalChars = mergedFiles.reduce((sum, f) => sum + (f.characterCount || 0), 0);
+                const totalW = mergedFiles.reduce((sum, f) => sum + (f.wordCount || 0), 0);
+                const validTexts = mergedFiles
+                  .filter((f) => f.status === "success" || f.status === "truncated")
+                  .map((f) => `### Specification Asset: ${f.fileName} (Format: ${f.format})\n${f.extractedText || ""}`);
+                return {
+                  files: mergedFiles,
+                  totalFiles: mergedFiles.length,
+                  totalCharacters: totalChars,
+                  totalWords: totalW,
+                  extractedText: validTexts.join("\n\n---\n\n"),
+                  extractedAt: new Date().toISOString(),
+                };
+              });
+
+              setUploadedFiles((prev) => {
+                const currentList = prev[category] || [];
+                const updatedList = currentList.map((f) => {
+                  const extracted = newAddlData.files.find((ef) => ef.fileName === f.name);
+                  if (extracted) {
+                    return {
+                      ...f,
+                      status: extracted.status,
+                      pageCount: extracted.pageCount,
+                      wordCount: extracted.wordCount,
+                      characterCount: extracted.characterCount,
+                      itemCount: extracted.itemCount,
+                      format: extracted.format,
+                      error: extracted.error,
+                    };
+                  }
+                  return f;
+                });
+                return { ...prev, [category]: updatedList };
+              });
+
+              const hasErrors = newAddlData.files.some((f) => f.status === "error");
+              if (hasErrors) {
+                showToast("Some specification assets could not be parsed", "warning");
+              } else {
+                showToast("Specification asset context extracted", "success");
+              }
+            }
+          } else {
+            showToast(json.error || "Failed to extract documents", "error");
+            setUploadedFiles((prev) => ({
+              ...prev,
+              [category]: (prev[category] || []).map((f) =>
+                filesArray.some((file) => file.name === f.name)
+                  ? { ...f, status: "error", error: json.error || "Extraction failed" }
+                  : f
+              ),
+            }));
+          }
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          showToast(`Extraction failed: ${msg.slice(0, 80)}`, "error");
+          setUploadedFiles((prev) => ({
+            ...prev,
+            [category]: (prev[category] || []).map((f) =>
+              filesArray.some((file) => file.name === f.name)
+                ? { ...f, status: "error", error: msg }
+                : f
+            ),
+          }));
+        } finally {
+          if (isPrd) setIsExtractingPrd(false);
+          else setIsExtractingAdditional(false);
+        }
+      } else {
+        const newFiles: UploadedFile[] = filesArray.map((f) => ({
+          name: f.name,
+          size: f.size,
+          category,
+          status: "success",
+        }));
+        setUploadedFiles((prev) => ({
+          ...prev,
+          [category]: [...(prev[category] || []), ...newFiles],
+        }));
+      }
     },
-    []
+    [showToast]
   );
 
   const handleFileRemove = useCallback(
     (category: string) => (name: string) => {
       setUploadedFiles((prev) => ({
         ...prev,
-        [category]: prev[category].filter((f) => f.name !== name),
+        [category]: (prev[category] || []).filter((f) => f.name !== name),
       }));
+
+      if (category === "prd") {
+        setPrdContext((prev) => {
+          if (!prev) return null;
+          const remaining = prev.files.filter((f) => f.fileName !== name);
+          if (remaining.length === 0) return null;
+          const totalChars = remaining.reduce((sum, f) => sum + (f.characterCount || 0), 0);
+          const totalW = remaining.reduce((sum, f) => sum + (f.wordCount || 0), 0);
+          const validTexts = remaining
+            .filter((f) => f.status === "success" || f.status === "truncated")
+            .map((f) => `### Source PRD File: ${f.fileName}\n${f.extractedText || ""}`);
+          return {
+            ...prev,
+            files: remaining,
+            totalFiles: remaining.length,
+            totalCharacters: totalChars,
+            totalWords: totalW,
+            extractedText: validTexts.join("\n\n---\n\n"),
+          };
+        });
+      } else if (category === "additional") {
+        setAdditionalContext((prev) => {
+          if (!prev) return null;
+          const remaining = prev.files.filter((f) => f.fileName !== name);
+          if (remaining.length === 0) return null;
+          const totalChars = remaining.reduce((sum, f) => sum + (f.characterCount || 0), 0);
+          const totalW = remaining.reduce((sum, f) => sum + (f.wordCount || 0), 0);
+          const validTexts = remaining
+            .filter((f) => f.status === "success" || f.status === "truncated")
+            .map((f) => `### Specification Asset: ${f.fileName} (Format: ${f.format})\n${f.extractedText || ""}`);
+          return {
+            ...prev,
+            files: remaining,
+            totalFiles: remaining.length,
+            totalCharacters: totalChars,
+            totalWords: totalW,
+            extractedText: validTexts.join("\n\n---\n\n"),
+          };
+        });
+      }
     },
     []
   );
@@ -870,6 +1079,8 @@ Rules for JSON fields:
                 >
                   <Step1Context
                     uploadedFiles={uploadedFiles}
+                    isExtractingPrd={isExtractingPrd}
+                    isExtractingAdditional={isExtractingAdditional}
                     handleFileUpload={handleFileUpload}
                     handleFileRemove={handleFileRemove}
                     githubUrl={githubUrl}

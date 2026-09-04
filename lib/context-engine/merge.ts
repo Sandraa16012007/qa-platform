@@ -20,12 +20,14 @@ export function mergeProjectContexts(sources: ContextSourcesInput): ProjectConte
   const manual = sources.manual || undefined;
   const website = sources.website || undefined;
   const prd = sources.prd || undefined;
+  const additional = sources.additional || undefined;
   const design = sources.design || undefined;
   const github = sources.github || undefined;
 
   // Track active sources
-  const activeSources: Array<"prd" | "website" | "manual" | "github" | "design"> = [];
+  const activeSources: Array<"prd" | "additional" | "website" | "manual" | "github" | "design"> = [];
   if (prd) activeSources.push("prd");
+  if (additional) activeSources.push("additional");
   if (website) activeSources.push("website");
   if (manual) activeSources.push("manual");
   if (github) activeSources.push("github");
@@ -60,6 +62,7 @@ export function mergeProjectContexts(sources: ContextSourcesInput): ProjectConte
     mergedAt: new Date().toISOString(),
     sourceCounts: {
       prdFiles: prd?.files?.length || 0,
+      additionalFiles: additional?.files?.length || 0,
       websitePages: website?.pages?.length || 0,
       designFiles: design?.files?.length || 0,
       hasGithub: Boolean(github?.repositoryUrl),
@@ -81,6 +84,7 @@ export function mergeProjectContexts(sources: ContextSourcesInput): ProjectConte
     manual,
     website,
     prd,
+    additional,
     design,
     github,
     metadata,

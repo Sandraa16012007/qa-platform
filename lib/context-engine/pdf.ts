@@ -9,10 +9,9 @@ export interface PrdExtractionOptions {
 }
 
 /**
- * PRD / PDF Source Adapter Placeholder
+ * PRD / PDF Source Adapter Stub
  * 
- * Typed foundation for PRD PDF document parsing & section extraction.
- * Returns null or empty context until source extraction is implemented in later Phase 2 modules.
+ * For full server-side parsing with pdf-parse and mammoth, use extractPrdContextFromFiles in document-extractor.ts
  */
 export async function extractPrdContext(
   options?: PrdExtractionOptions
@@ -21,13 +20,19 @@ export async function extractPrdContext(
     return null;
   }
 
-  // Placeholder foundation: real PDF parsing will be added in Phase 2 source ingestion
   return {
     files: options.files.map((f) => ({
       fileName: f.name,
       fileSize: f.size,
       fileType: f.type,
+      status: "success",
+      extractedAt: new Date().toISOString(),
     })),
+    totalFiles: options.files.length,
+    totalCharacters: 0,
+    totalWords: 0,
     extractedAt: new Date().toISOString(),
   };
 }
+
+
