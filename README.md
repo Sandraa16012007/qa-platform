@@ -8,7 +8,7 @@ Built as a Phase 1 prototype, the platform focuses on AI-assisted QA planning, h
 
 ## Features
 
-- AI-generated application understanding
+- AI-generated application understanding (derived from description of the application, domain, user preferences, website content extraction)
 - AI-generated QA frameworks
 - Multi-level QA planning
   - Product QA
@@ -36,6 +36,7 @@ Built as a Phase 1 prototype, the platform focuses on AI-assisted QA planning, h
 
 ### Backend
 - Supabase (PostgreSQL)
+- Playwright
 
 ### AI
 - Google Gemini 2.5 Flash
@@ -94,13 +95,13 @@ Implemented:
 - Issue tracking
 - Persistent storage
 - Project dashboard
+- Website crawling
 
 Not yet implemented:
 - Browser automation agents
 - Automated testing
 - Playwright/Selenium integration
 - GitHub/Figma/PRD context
-- Website crawling
 - Analytics
 - AI-generated reports
 - Quality Engineering (QE) workflows
@@ -132,7 +133,6 @@ GEMINI_API_KEY=...
 ## Future Roadmap
 
 - Browser automation agents
-- Playwright integration
 - Selenium integration
 - File and repository context ingestion
 - Design analysis (Figma)
