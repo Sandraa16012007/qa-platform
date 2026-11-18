@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:gemini": "tsx scripts/diagnose-gemini.ts"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",

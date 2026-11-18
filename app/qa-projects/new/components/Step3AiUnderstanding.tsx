@@ -39,6 +39,8 @@ interface Step3AiUnderstandingProps {
   };
   goPrev: () => void;
   handleGenerate: () => void;
+  analysisError?: string | null;
+  onRetry?: () => void;
 }
 
 export default function Step3AiUnderstanding({
@@ -63,6 +65,8 @@ export default function Step3AiUnderstanding({
   sourcesMeta,
   goPrev,
   handleGenerate,
+  analysisError,
+  onRetry,
 }: Step3AiUnderstandingProps) {
   const toggleItem = (list: string[], setter: React.Dispatch<React.SetStateAction<string[]>>, item: string) => {
     setter((prev) =>
@@ -105,6 +109,29 @@ export default function Step3AiUnderstanding({
               </div>
             )}
           </div>
+
+          {analysisError && (
+            <motion.div
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="neo-border bg-red-950/20 border-red-500/40 text-red-200 p-3.5 rounded-xl flex items-center justify-between text-xs"
+            >
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+                <span className="font-medium text-xs leading-relaxed">{analysisError}</span>
+              </div>
+              {onRetry && (
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  className="bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-500/40 px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 flex-shrink-0 ml-3"
+                >
+                  <RotateCw size={11} />
+                  Retry Analysis
+                </button>
+              )}
+            </motion.div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Application Summary */}

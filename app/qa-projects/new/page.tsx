@@ -147,6 +147,14 @@ export default function NewProjectWizard() {
   const isEditingSummary = useAiUnderstandingStore((state) => state.isEditingSummary);
   const setIsEditingSummary = useAiUnderstandingStore((state) => state.setIsEditingSummary);
   const [aiReady, setAiReady] = useState(false);
+  const [aiAnalysisError, setAiAnalysisError] = useState<string | null>(null);
+  const [analysisRetryTrigger, setAnalysisRetryTrigger] = useState(0);
+
+  const handleRetryAiAnalysis = useCallback(() => {
+    setAiAnalysisError(null);
+    setAiReady(false);
+    setAnalysisRetryTrigger((c) => c + 1);
+  }, []);
 
   /* ── Derived Framework Metrics ── */
   const [estimatedChecks, setEstimatedChecks] = useState(450);
@@ -584,36 +592,14 @@ Return a single strict JSON object matching this structure:
             automationPrefs.length,
             humanReviewCats.length
           );
+          setAiReady(true);
+          setAiAnalysisError(null);
         } else {
-          showToast(res.error || "Gemini API error. Falling back to default analysis.", "warning");
-          setAiSummary(
-            `${projectName || "Application"} is a ${domain.toLowerCase() || "digital"} product (${productType.toLowerCase() || "web app"}). Focuses on delivering reliable workflows and seamless user experience.`
-          );
-          setDetectedUsers(["End Users", "Administrators", "Power Users", "Visitors"]);
-          setDetectedFeatures([
-            "Authentication",
-            "Dashboard",
-            "Content Management",
-            "Search & Filter",
-            "Notifications",
-            "Settings",
-          ]);
-          setCriticalWorkflows([
-            "User Registration",
-            "Core Feature Usage",
-            "Content Creation",
-            "Navigation Flow",
-          ]);
-          setRiskAreas([
-            "Media Upload Reliability",
-            "Mobile Responsiveness",
-            "Accessibility",
-            "Data Validation",
-          ]);
-          calculateDerivedMetrics(qaDepth, 6, 4, automationPrefs.length, humanReviewCats.length);
+          const errMsg = res.error || "Gemini API failed to generate AI Understanding.";
+          setAiAnalysisError(errMsg);
+          showToast(errMsg, "error");
+          // Never return fake AI output when API fails.
         }
-
-        setAiReady(true);
       };
 
       runAiAnalysis();
@@ -625,6 +611,7 @@ Return a single strict JSON object matching this structure:
   }, [
     currentStep,
     aiReady,
+    analysisRetryTrigger,
     projectName,
     domain,
     productType,
@@ -751,6 +738,17 @@ Rules for JSON fields:
         return;
       }
 
+      if (!res.success || !res.data || !Array.isArray(res.data.checks) || res.data.checks.length === 0) {
+        if (progressTimer) clearInterval(progressTimer);
+        setIsGenerating(false);
+        generationLockRef.current = false;
+        showToast(
+          res.error || "Failed to generate QA framework with Gemini. Please verify your Gemini API key and try again.",
+          "error"
+        );
+        return;
+      }
+
       const allowedCategories = [
         "Navigation", "Forms", "Accessibility", "Visual Design", "Usability and product experience",
         "Responsive", "Performance", "Security", "Authentication", "Validation", "Error Handling",
@@ -760,73 +758,29 @@ Rules for JSON fields:
         "Product QA", "Page QA", "Component QA", "Feature QA", "Release QA"
       ];
 
-      let generatedChecks: QaCheck[] = [];
+      const generatedChecks: QaCheck[] = res.data.checks.map((item, idx) => {
+        const isHuman =
+          item.automation === "Human Review" ||
+          item.category?.toLowerCase().includes("usability") ||
+          item.category?.toLowerCase().includes("visual") ||
+          item.category?.toLowerCase().includes("ux") ||
+          item.title?.toLowerCase().includes("experience");
 
-      if (res.success && res.data && Array.isArray(res.data.checks) && res.data.checks.length > 0) {
-        generatedChecks = res.data.checks.map((item, idx) => {
-          const isHuman =
-            item.automation === "Human Review" ||
-            item.category?.toLowerCase().includes("usability") ||
-            item.category?.toLowerCase().includes("visual") ||
-            item.category?.toLowerCase().includes("ux") ||
-            item.title?.toLowerCase().includes("experience");
-
-          return {
-            id: item.id || `gen-check-${idx + 1}`,
-            title: item.title || `Verification check ${idx + 1}`,
-            level: allowedLevels.includes(item.level) ? item.level : allowedLevels[idx % allowedLevels.length],
-            pageName: item.pageName || "Overview Page",
-            category: allowedCategories.includes(item.category) ? item.category : "Usability and product experience",
-            priority: (["Critical", "High", "Medium", "Low"].includes(item.priority) ? item.priority : "Medium") as QaCheck["priority"],
-            status: "Not Started",
-            type: item.type || item.category || "Functional",
-            automation: isHuman ? "Human Review" : "Automated",
-            description: item.description || "Verify expected feature behavior and state transitions.",
-            expectedBehavior: item.expectedBehavior || "Component behaves according to UX and functional specifications.",
-            notes: item.notes || "Execute testing spec or manual review.",
-          };
-        });
-      } else {
-        showToast("Using built-in QA framework template checks.", "warning");
-        const specificTemplates = [
-          { title: "File upload completes successfully with visual progress feedback", cat: "Forms", page: "Upload Modal", auto: "Human Review", priority: "High" },
-          { title: "All interactive elements are keyboard accessible with focus indicators", cat: "Accessibility", page: "Global Navigation", auto: "Human Review", priority: "Critical" },
-          { title: "Pages and screens load within acceptable performance threshold", cat: "Performance", page: "Overview Page", auto: "Automated", priority: "High" },
-          { title: "Required form fields are validated before submission with inline errors", cat: "Validation", page: "Registration Page", auto: "Automated", priority: "Critical" },
-          { title: "Success and error toasts appear for key user actions", cat: "Notifications", page: "Dashboard", auto: "Human Review", priority: "Medium" },
-          { title: "Global navigation header is consistent across all application routes", cat: "Navigation", page: "Global Navigation", auto: "Human Review", priority: "Critical" },
-          { title: "User session tokens are invalidated upon manual logout", cat: "Security", page: "Auth Module", auto: "Automated", priority: "Critical" },
-          { title: "Responsive layout adjusts without overflow on mobile viewports", cat: "Responsive", page: "Overview Page", auto: "Human Review", priority: "High" },
-          { title: "Search query filters update results list dynamically", cat: "Search", page: "Search Page", auto: "Automated", priority: "Medium" },
-          { title: "Data table pagination and sorting maintain state across navigation", cat: "Tables", page: "Reports Page", auto: "Automated", priority: "Medium" },
-        ];
-
-        const defaultPages = ["Login Page", "Dashboard", "Search Page", "Settings Page", "User Profile"];
-        for (let i = 0; i < targetCount; i++) {
-          const tmpl = specificTemplates[i % specificTemplates.length];
-          const featName = detectedFeatures[i % Math.max(1, detectedFeatures.length)] || "Core Feature";
-          const lvl = allowedLevels[i % allowedLevels.length];
-
-          const checkTitle = i < specificTemplates.length
-            ? tmpl.title
-            : `Verify ${featName} workflow executes cleanly on ${defaultPages[i % defaultPages.length]}`;
-
-          generatedChecks.push({
-            id: `gen-check-${i + 1}`,
-            title: checkTitle,
-            level: lvl,
-            pageName: tmpl.page || defaultPages[i % defaultPages.length],
-            category: tmpl.cat || "Usability and product experience",
-            priority: (tmpl.priority || "Medium") as QaCheck["priority"],
-            status: "Not Started",
-            type: tmpl.cat || "Functional",
-            automation: (tmpl.auto || "Automated") as QaCheck["automation"],
-            description: `Verify ${checkTitle.toLowerCase()} under expected operational state.`,
-            expectedBehavior: `Expected behavior executes without UI glitches or console errors.`,
-            notes: `Perform automated assertion or human usability check.`,
-          });
-        }
-      }
+        return {
+          id: item.id || `gen-check-${idx + 1}`,
+          title: item.title || `Verification check ${idx + 1}`,
+          level: allowedLevels.includes(item.level) ? item.level : allowedLevels[idx % allowedLevels.length],
+          pageName: item.pageName || "Overview Page",
+          category: allowedCategories.includes(item.category) ? item.category : "Usability and product experience",
+          priority: (["Critical", "High", "Medium", "Low"].includes(item.priority) ? item.priority : "Medium") as QaCheck["priority"],
+          status: "Not Started",
+          type: item.type || item.category || "Functional",
+          automation: isHuman ? "Human Review" : "Automated",
+          description: item.description || "Verify expected feature behavior and state transitions.",
+          expectedBehavior: item.expectedBehavior || "Component behaves according to UX and functional specifications.",
+          notes: item.notes || "Execute testing spec or manual review.",
+        };
+      });
 
       // Persist Project, AI Understanding, QA Framework & Human Reviews to Supabase
       try {
@@ -939,8 +893,15 @@ Rules for JSON fields:
 
   /* ── Start generation ── */
   const handleGenerate = useCallback(() => {
+    if (!aiSummary || !aiSummary.trim()) {
+      showToast(
+        "Please ensure an application summary is generated or entered before generating the QA framework.",
+        "warning"
+      );
+      return;
+    }
     setIsGenerating(true);
-  }, []);
+  }, [aiSummary, showToast]);
 
   /* ── If generating, render generation screen ── */
   if (isGenerating) {
@@ -1156,6 +1117,8 @@ Rules for JSON fields:
                     }}
                     goPrev={goPrev}
                     handleGenerate={handleGenerate}
+                    analysisError={aiAnalysisError}
+                    onRetry={handleRetryAiAnalysis}
                   />
                 </motion.div>
               )}
