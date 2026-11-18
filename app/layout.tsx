@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+import AuthInitializer from "./components/AuthInitializer";
 
 const ibmPlex = IBM_Plex_Sans({
   variable: "--font-ibm-plex",
@@ -33,6 +34,7 @@ export default function RootLayout({
       className={`${ibmPlex.variable} ${ibmPlexMono.variable} h-full antialiased`}
     >
       <body className="min-h-full h-full flex overflow-hidden bg-background text-foreground font-sans">
+        <AuthInitializer />
         {children}
       </body>
     </html>

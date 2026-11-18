@@ -1,10 +1,11 @@
 "use client";
 
-import { Search, Info, Bell, User, Settings } from "lucide-react";
+import { Search, Info, Bell, User, Settings, LogOut } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { SIDEBAR_EXPANDED_WIDTH, SIDEBAR_COLLAPSED_WIDTH } from "./Sidebar";
 import VideoModal from "./VideoModal";
+import { useAuthStore } from "../stores/useAuthStore";
 
 interface HeaderContentProps {
   sidebarWidth?: number;
@@ -18,6 +19,33 @@ function HeaderContent({ sidebarWidth = SIDEBAR_EXPANDED_WIDTH }: HeaderContentP
 
   const [localValue, setLocalValue] = useState(query);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  const user = useAuthStore((state) => state.user);
+  const signOut = useAuthStore((state) => state.signOut);
+
+  const displayName =
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    (user?.email ? user.email.split("@")[0] : "Admin Engineer");
+  const displayEmail = user?.email || "admin@qa.platform";
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleLogout = async () => {
+    setIsUserMenuOpen(false);
+    await signOut();
+    router.replace("/auth");
+  };
 
   // Sync local input with URL search param changes
   useEffect(() => {
@@ -82,8 +110,30 @@ function HeaderContent({ sidebarWidth = SIDEBAR_EXPANDED_WIDTH }: HeaderContentP
         <button className="p-2 text-on-surface-variant hover:text-primary transition-colors cursor-pointer">
           <Settings size={20} strokeWidth={1.5} />
         </button>
-        <div className="w-8 h-8 bg-surface-container-highest neo-border rounded-lg flex items-center justify-center">
-          <User size={18} strokeWidth={1.5} className="text-primary" />
+        <div className="relative" ref={userMenuRef}>
+          <button
+            onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+            aria-label="User menu"
+            className="w-8 h-8 bg-surface-container-highest neo-border rounded-lg flex items-center justify-center hover:border-primary transition-colors cursor-pointer"
+          >
+            <User size={18} strokeWidth={1.5} className="text-primary" />
+          </button>
+
+          {isUserMenuOpen && (
+            <div className="absolute right-0 mt-2 w-64 bg-surface-container border border-outline rounded-xl shadow-2xl p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="px-2 py-1.5 border-b border-outline mb-2">
+                <p className="text-sm font-semibold text-on-surface truncate">{displayName}</p>
+                <p className="text-xs text-on-surface-variant truncate">{displayEmail}</p>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-semibold uppercase tracking-wider text-on-surface-variant hover:text-magenta hover:bg-magenta/10 rounded-lg transition-colors cursor-pointer"
+              >
+                <LogOut size={14} strokeWidth={1.5} />
+                <span>Logout</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

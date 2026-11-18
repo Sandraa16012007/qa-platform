@@ -12,6 +12,7 @@ interface IssuesStore {
   updateIssue: (id: string, updates: Partial<IssueItem>) => Promise<void>;
   deleteIssue: (id: string) => Promise<void>;
   setIssues: (value: IssueItem[] | ((prev: IssueItem[]) => IssueItem[])) => void;
+  reset: () => void;
 }
 
 export const useIssuesStore = create<IssuesStore>((set, get) => ({
@@ -80,4 +81,11 @@ export const useIssuesStore = create<IssuesStore>((set, get) => ({
     set((state) => ({
       issues: typeof value === "function" ? value(state.issues) : value,
     })),
+
+  reset: () =>
+    set({
+      issues: [],
+      isLoading: false,
+      currentProjectId: null,
+    }),
 }));

@@ -15,6 +15,7 @@ interface PageNotesStore {
   updatePageNote: (id: string, updates: { pageName?: string; content?: string }) => Promise<void>;
   deletePageNote: (id: string) => Promise<void>;
   setPageNotes: (value: PageNote[] | ((prev: PageNote[]) => PageNote[])) => void;
+  reset: () => void;
 }
 
 export const usePageNotesStore = create<PageNotesStore>((set, get) => ({
@@ -80,4 +81,11 @@ export const usePageNotesStore = create<PageNotesStore>((set, get) => ({
     set((state) => ({
       pageNotes: typeof value === "function" ? value(state.pageNotes) : value,
     })),
+
+  reset: () =>
+    set({
+      pageNotes: [],
+      isLoading: false,
+      currentProjectId: null,
+    }),
 }));

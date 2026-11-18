@@ -159,7 +159,7 @@ export async function generateJSON<T = unknown>(
       : baseSystemInstruction;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.8-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",

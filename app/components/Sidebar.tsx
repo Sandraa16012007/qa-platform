@@ -12,8 +12,9 @@ import {
   PanelLeftClose,
   PanelLeft,
 } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuthStore } from "../stores/useAuthStore";
 
 const SIDEBAR_EXPANDED_WIDTH = 260;
 const SIDEBAR_COLLAPSED_WIDTH = 64;
@@ -31,6 +32,21 @@ interface SidebarProps {
 
 export default function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const user = useAuthStore((state) => state.user);
+  const signOut = useAuthStore((state) => state.signOut);
+
+  const displayName =
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    (user?.email ? user.email.split("@")[0] : "Admin Engineer");
+  const displayEmail = user?.email || "admin@qa.platform";
+
+  const handleLogout = async () => {
+    await signOut();
+    router.replace("/auth");
+  };
+
   const width = collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH;
 
   return (
@@ -144,8 +160,8 @@ export default function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
           </div>
           {!collapsed && (
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-on-surface truncate">Admin Engineer</p>
-              <p className="text-xs text-on-surface-variant truncate">admin@qa.platform</p>
+              <p className="text-sm font-semibold text-on-surface truncate">{displayName}</p>
+              <p className="text-xs text-on-surface-variant truncate">{displayEmail}</p>
             </div>
           )}
         </div>
@@ -162,6 +178,7 @@ export default function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
             {!collapsed && <span>Settings</span>}
           </button>
           <button
+            onClick={handleLogout}
             className={`flex items-center justify-center gap-2 py-2 bg-surface-container-low border border-outline hover:border-magenta hover:text-magenta transition-all text-xs font-semibold uppercase tracking-wider text-on-surface-variant rounded-lg cursor-pointer ${
               collapsed ? "w-full px-0" : "flex-1 px-3"
             }`}

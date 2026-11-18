@@ -31,13 +31,23 @@ export async function createPageNote(
   projectId: string,
   note: { pageName: string; content: string; author?: string }
 ): Promise<PageNote> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const authorName =
+    note.author ||
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email ||
+    "Admin Engineer";
+
   const { data, error } = await supabase
     .from("page_notes")
     .insert({
       project_id: projectId,
       page_name: note.pageName,
       content: note.content,
-      author: note.author || "Admin Engineer",
+      author: authorName,
     })
     .select("*")
     .single();

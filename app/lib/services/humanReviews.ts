@@ -108,6 +108,15 @@ export async function saveHumanReviewResult(
   if (result === "Fail") computedStatus = "Failed";
   if (result === "Not Applicable") computedStatus = "Not Applicable";
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const reviewerName =
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email ||
+    "Admin Engineer";
+
   const { data: row, error } = await supabase
     .from("human_reviews")
     .update({
@@ -116,7 +125,7 @@ export async function saveHumanReviewResult(
       rating,
       notes,
       screenshot_url: screenshotUrl ?? null,
-      reviewed_by: "Admin Engineer",
+      reviewed_by: reviewerName,
       reviewed_at: new Date().toISOString(),
     })
     .eq("id", id)

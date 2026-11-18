@@ -1,5 +1,6 @@
 export interface Project {
   id: string;
+  userId?: string;
   name: string;
   type: string;
   domain: string;

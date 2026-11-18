@@ -7,6 +7,7 @@
 
 export interface DbProject {
   id: string;
+  user_id?: string | null;
   name: string;
   product_type: string;
   domain: string;
@@ -158,6 +159,7 @@ function formatDate(isoString: string | null | undefined): string {
 export function dbProjectToFrontend(row: DbProject): Project {
   return {
     id: row.id,
+    userId: row.user_id ?? undefined,
     name: row.name,
     type: row.product_type,
     domain: row.domain,
@@ -182,6 +184,7 @@ export function frontendProjectToDb(
   p: Partial<Project>
 ): Partial<DbProject> {
   const mapped: Record<string, unknown> = {};
+  if (p.userId !== undefined) mapped.user_id = p.userId;
   if (p.name !== undefined) mapped.name = p.name;
   if (p.type !== undefined) mapped.product_type = p.type;
   if ((p as any).domain !== undefined) mapped.domain = (p as any).domain;

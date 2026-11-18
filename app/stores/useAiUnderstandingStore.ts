@@ -31,6 +31,7 @@ interface AiUnderstandingStore extends AiUnderstandingState {
   setIsEditingSummary: (editing: boolean) => void;
   resetUnderstanding: () => void;
   clearProjectContext: () => void;
+  reset: () => void;
 }
 
 const initialState: AiUnderstandingState = {
@@ -122,6 +123,13 @@ export const useAiUnderstandingStore = create<AiUnderstandingStore>((set, get) =
     resetUnderstanding: () => set({ ...initialState }),
 
     clearProjectContext: () => set({ currentProjectId: null }),
+
+    reset: () =>
+      set({
+        ...initialState,
+        isLoading: false,
+        currentProjectId: null,
+      }),
   };
 });
 

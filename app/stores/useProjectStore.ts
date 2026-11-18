@@ -17,6 +17,7 @@ interface ProjectStore {
   deleteProject: (id: string) => void;
   patchProjectLocal: (id: string, patch: Partial<Project>) => void;
   getSelectedProject: () => Project | null;
+  reset: () => void;
 }
 
 export const useProjectStore = create<ProjectStore>((set, get) => ({
@@ -156,4 +157,13 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     set((state) => ({
       projects: state.projects.map((p) => (p.id === id ? { ...p, ...patch } : p)),
     })),
+
+  reset: () =>
+    set({
+      projects: [],
+      selectedProjectId: null,
+      isLoading: false,
+      isLoaded: false,
+      loadError: null,
+    }),
 }));

@@ -46,6 +46,7 @@ interface HumanReviewStore {
     value: HumanReviewItem[] | ((prev: HumanReviewItem[]) => HumanReviewItem[])
   ) => void;
   resetReviews: () => void;
+  reset: () => void;
 }
 
 export const useHumanReviewStore = create<HumanReviewStore>((set, get) => ({
@@ -183,5 +184,19 @@ export const useHumanReviewStore = create<HumanReviewStore>((set, get) => ({
           : value,
     })),
 
-  resetReviews: () => set({ humanReviews: [], selectedReviewId: null }),
+  resetReviews: () =>
+    set({
+      humanReviews: [],
+      selectedReviewId: null,
+      isLoading: false,
+      currentProjectId: null,
+    }),
+
+  reset: () =>
+    set({
+      humanReviews: [],
+      selectedReviewId: null,
+      isLoading: false,
+      currentProjectId: null,
+    }),
 }));

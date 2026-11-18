@@ -43,7 +43,21 @@ export async function fetchProjectById(id: string): Promise<Project | null> {
 
 /** Create a new project row standalone. */
 export async function createProject(data: Partial<Project>): Promise<Project> {
-  const payload = frontendProjectToDb(data);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const ownerName =
+    data.owner ||
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email ||
+    "Admin Engineer";
+
+  const payload = {
+    ...frontendProjectToDb(data),
+    ...(user?.id ? { user_id: user.id } : {}),
+    owner: ownerName,
+  };
   const { data: row, error } = await supabase
     .from("projects")
     .insert(payload)
@@ -76,9 +90,21 @@ export async function createProjectAfterGeneration(
     );
   }
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const ownerName =
+    project.owner ||
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email ||
+    "Admin Engineer";
+
   // 1. Insert Project Row
   const projectPayload = {
     ...frontendProjectToDb(project),
+    ...(user?.id ? { user_id: user.id } : {}),
+    owner: ownerName,
     framework_checks_count: qaChecks.length,
     framework_progress: 100,
     status: "In Progress",

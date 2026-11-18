@@ -34,6 +34,7 @@ interface FrameworkStore {
   deleteCheck: (id: string) => void;
   patchCheckLocal: (id: string, patch: Partial<QaCheck>) => void;
   resetFilters: () => void;
+  reset: () => void;
 }
 
 // Recomputes the live Quality Score (same derivation as the Project Overview
@@ -198,4 +199,19 @@ export const useFrameworkStore = create<FrameworkStore>((set, get) => ({
     set((state) => ({
       checks: state.checks.map((c) => (c.id === id ? { ...c, ...patch } : c)),
     })),
+
+  reset: () =>
+    set({
+      checks: [],
+      selectedCheckId: null,
+      selectedLevel: "Product QA",
+      searchText: "",
+      filterCategory: "All",
+      filterPriority: "All",
+      filterStatus: "All",
+      filterAutomation: "All",
+      collapsedCats: {},
+      isLoading: false,
+      currentProjectId: null,
+    }),
 }));

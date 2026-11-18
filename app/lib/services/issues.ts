@@ -31,7 +31,20 @@ export async function createIssue(
   projectId: string,
   issueData: Partial<IssueItem>
 ): Promise<IssueItem> {
-  const payload = frontendIssueToDb(issueData, projectId);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const userName =
+    issueData.assignedTo ||
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email ||
+    "Admin Engineer";
+
+  const payload = {
+    ...frontendIssueToDb(issueData, projectId),
+    assigned_to: userName,
+  };
   const { data: row, error } = await supabase
     .from("issues")
     .insert(payload)
