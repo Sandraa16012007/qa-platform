@@ -8,6 +8,20 @@ Built as a Phase 1 prototype, the platform focuses on AI-assisted QA planning, h
 
 ## Features
 
+- AI-generated application understanding (derived from description of the application, domain, user preferences, website content extraction)
+- AI-generated QA frameworks
+- Multi-level QA planning
+  - Product QA
+  - Page QA
+  - Component QA
+  - Feature QA
+  - Release QA
+- Editable QA checklist items
+- Human review workflow
+- Issue tracking
+- Project notes
+- Persistent project storage with Supabase
+- Modern dashboard for managing QA projects
 ### Implemented
 
 - **AI Understanding Generation** — Gemini-powered product analysis (users, features, workflows, risk areas)
@@ -48,6 +62,8 @@ Built as a Phase 1 prototype, the platform focuses on AI-assisted QA planning, h
 - Framer Motion (animations)
 
 ### Backend
+- Supabase (PostgreSQL)
+- Playwright
 - Supabase (PostgreSQL + Auth + RLS)
 - Next.js API Routes
 
@@ -121,6 +137,26 @@ All tables enforce **user-specific RLS policies** — users can only read and wr
 
 ---
 
+## Current Scope (Phase 1)
+
+Implemented:
+- AI Understanding generation
+- QA Framework generation
+- Editable QA framework
+- Human review management
+- Issue tracking
+- Persistent storage
+- Project dashboard
+- Website crawling
+
+Not yet implemented:
+- Browser automation agents
+- Automated testing
+- Playwright/Selenium integration
+- GitHub/Figma/PRD context
+- Analytics
+- AI-generated reports
+- Quality Engineering (QE) workflows
 ## Authentication & Protected Routes
 
 Authentication is handled by **Supabase Auth** (email/password + OAuth).
@@ -228,6 +264,8 @@ npm run test:gemini
 ## Future Roadmap
 
 - Browser automation agents
+- Selenium integration
+- File and repository context ingestion
 - Playwright / Selenium integration
 - File and repository context ingestion (GitHub)
 - Design analysis (Figma)
@@ -239,5 +277,7 @@ npm run test:gemini
 ---
 
 ## License
+
+This project was developed as part of a research and development initiative exploring AI-assisted Quality Assurance and Quality Engineering workflows.
 
 Developed as part of a research and development initiative exploring AI-assisted Quality Assurance and Quality Engineering workflows.
